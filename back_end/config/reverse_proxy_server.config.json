@@ -1,0 +1,15 @@
+{
+  "MEOWALIEN_COM_CRT" : "ssl/crt/meowalien_com.crt",
+  "SectigoRSADomainValidationSecureServerCA" : "ssl/crt/SectigoRSADomainValidationSecureServerCA.crt",
+  "USERTrustRSAAddTrustCA" : "ssl/crt/USERTrustRSAAddTrustCA.crt",
+  "AddTrustExternalCARoot" : "ssl/crt/AddTrustExternalCARoot.crt",
+
+  "CERT_FILE" : "ssl\\csr\\meowalien_com.pem",
+  "KEY_FILE" : "ssl\\key\\meowalien.com.key",
+
+  "ServePath":"https://127.0.0.1:443",
+  "RedirectAddrMap" : {
+    "meowalien": "http://127.0.0.1:2004",
+    "api": "http://127.0.0.1:2002"
+  }
+}
