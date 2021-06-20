@@ -10,6 +10,8 @@ import (
 	"rabbit_gather/src/reverse_proxy_server"
 	"rabbit_gather/src/web_server"
 	"syscall"
+	// database init
+	"rabbit_gather/src/neo4j_db"
 )
 
 func main() {
@@ -39,13 +41,16 @@ func main() {
 		cancle()
 		panic(err.Error())
 	}
-
-
-
-
-
 	waitForShutdown(ctx)
 	fmt.Println("Main process end.")
+	finalize()
+}
+
+func finalize() {
+	err := neo4j_db.Close()
+	if err != nil {
+		panic(err.Error())
+	}
 }
 
 func waitForShutdown(ctx context.Context) {

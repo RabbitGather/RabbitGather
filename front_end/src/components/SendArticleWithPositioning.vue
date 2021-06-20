@@ -16,10 +16,18 @@
   </div>
 </template>
 
+
+
+
+
+
+
+
+
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
 import axios from "axios";
-type Position = { latitude: number; longitude: number };
+import { PositionClass, Position } from "../global/Position";
 type Article = { title: string; content: string; position: Position };
 @Options({
   // props: {
@@ -32,7 +40,7 @@ export default class SendArticleWithPositioning extends Vue {
   resMessage = "";
   currentPosition!: Position;
   async submitForm() {
-    this.currentPosition = await this.getPosition();
+    this.currentPosition = await new PositionClass().getPosition();
     // console.log("Position-latitude : ", this.currentPosition.latitude);
     // console.log("Position-longitude : ", this.currentPosition.longitude);
     // console.log("titleInput : ", this.titleInput);
@@ -47,35 +55,12 @@ export default class SendArticleWithPositioning extends Vue {
   async sendArticleToServer(article: Article) {
     console.log("article : ", article);
     try {
-      const response = await axios.post(
-        "https://api.meowalien.com/post_article",
-        article
-      );
+      const response = await axios.post("/api/post_article", article);
       console.log(response.data["result"]);
       this.resMessage = response.data["result"];
     } catch (error) {
       console.error(error);
     }
-  }
-  getPosition(): Promise<Position> {
-    return new Promise<Position>((resolve) => {
-      if (!navigator.geolocation) {
-        throw "Geolocation is not supported by your browser";
-      }
-      navigator.geolocation.getCurrentPosition(
-        (position: GeolocationPosition): void => {
-          let res: Position = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          // console.log("res before : ", res);
-          resolve(res);
-        },
-        () => {
-          throw "Unable to retrieve your location";
-        }
-      );
-    });
   }
 }
 </script>

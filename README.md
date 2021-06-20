@@ -17,13 +17,11 @@ https://www.figma.com/file/2RU9Wj1U7LAgoBBEVYrVdR/RabbitGater?node-id=0%3A1
 
 
 # 專案方向
-```
-做PWA模式的網站
+* 做PWA模式的網站
 
-
-
-```
-
-# 開發計畫
-1. 創建伺服器並實現網頁定位功能
-2. 
+# 開發計畫 TASK
+* [x] 創建伺服器並實現網頁定位功能
+* [x] 建立伺服器與前端的基礎通訊
+* [ ] 使用Neo4j儲存文章與定位資訊
+* [ ] 
+* [ ] 
