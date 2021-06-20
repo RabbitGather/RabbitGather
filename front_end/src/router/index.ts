@@ -11,24 +11,37 @@ const routes: Array<RouteRecordRaw> = [
       metaTags: [
         {
           name: "description",
-          content: "The home page of our example app.",
+          content: "RabbitGather Main page",
         },
         {
           property: "og:description",
-          content: "The home page of our example app.",
+          content: "RabbitGather Main page",
         },
       ],
     },
   },
-  // {
-  //   path: "/about",
-  //   name: "About",
-  //   // route level code-splitting
-  //   // this generates a separate chunk (about.[hash].js) for this route
-  //   // which is lazy-loaded when the route is visited.
-  //   component: () =>
-  //     import(/* webpackChunkName: "about" */ "../views/About.vue"),
-  // },
+  {
+    path: "/login",
+    name: "Login",
+    // route level code-splitting
+    // this generates a separate chunk (about.[hash].js) for this route
+    // which is lazy-loaded when the route is visited.
+    component: () =>
+      import(/* webpackChunkName: "about" */ "../views/Login.vue"),
+    meta: {
+      title: "RabbitGather - Login",
+      metaTags: [
+        {
+          name: "description",
+          content: "RabbitGather Login page",
+        },
+        {
+          property: "og:description",
+          content: "RabbitGather Login page",
+        },
+      ],
+    },
+  },
 ];
 
 const router = createRouter({

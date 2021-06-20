@@ -16,18 +16,10 @@
   </div>
 </template>
 
-
-
-
-
-
-
-
-
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
 import axios from "axios";
-import { PositionClass, Position } from "../global/Position";
+import { PositionClass, Position } from "../global/Positions";
 type Article = { title: string; content: string; position: Position };
 @Options({
   // props: {
@@ -40,11 +32,8 @@ export default class SendArticleWithPositioning extends Vue {
   resMessage = "";
   currentPosition!: Position;
   async submitForm() {
+
     this.currentPosition = await new PositionClass().getPosition();
-    // console.log("Position-latitude : ", this.currentPosition.latitude);
-    // console.log("Position-longitude : ", this.currentPosition.longitude);
-    // console.log("titleInput : ", this.titleInput);
-    // console.log("contentInput : ", this.contentInput);
 
     this.sendArticleToServer({
       title: this.titleInput,
