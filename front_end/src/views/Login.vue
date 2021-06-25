@@ -119,3 +119,25 @@ export default class LoginPage extends Vue {
   }
 }
 </script>
+
+
+<style scoped>
+.login {
+  flex-direction: column;
+  height: 100vh;
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  background: rgb(255, 171, 171);
+}
+.login > form * {
+  width: 100%;
+}
+.login > form {
+  width: 500px;
+}
+.login_form {
+  display: block;
+  float: left;
+}
+</style>

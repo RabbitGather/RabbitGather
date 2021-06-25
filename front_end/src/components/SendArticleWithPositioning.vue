@@ -1,5 +1,7 @@
 <template>
   <div class="SendArticleWithPositioning">
+    <h1>Send Article With Positioning</h1>
+
     <form @submit.prevent="submitForm">
       <label for="title">Title</label>
       <input id="title" type="text" v-model="titleInput" />
@@ -57,6 +59,7 @@ export default class SendArticleWithPositioning extends Vue {
 <style scoped>
 .SendArticleWithPositioning {
   height: 100vh;
+  flex-direction: column;
   align-items: center;
   display: flex;
   justify-content: center;
