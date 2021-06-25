@@ -1,28 +1,23 @@
 <template>
   <div class="login">
-    <!-- <h1>LOGIN PAGE</h1>
+    <h1>LOGIN PAGE</h1>
     <form class="login_form" @submit.prevent="login">
       <label>User name</label>
       <input v-model="username" type="text" placeholder="UserName" />
-      <label v-show="errorMessagByUserNameSideText">{{
+      <!-- <label v-show="errorMessagByUserNameSideText">{{
         errorMessagByUserNameSideText
-      }}</label>
+      }}</label> -->
 
       <label>Password</label>
       <input v-model="password" type="password" placeholder="Password" />
-      <label v-show="errorMessagByPasswordSideText">{{
+      <!-- <label v-show="errorMessagByPasswordSideText">{{
         errorMessagByPasswordSideText
-      }}</label>
+      }}</label> -->
       <hr />
       <button type="submit">Login</button>
-      <label v-show="resErrorMessage">{{ resErrorMessage }}</label>
-      <loading
-        v-model:active="isLoading"
-        :can-cancel="true"
-        :on-cancel="onCancel"
-        :is-full-page="fullPage"
-      />
-    </form> -->
+      <label v-show="resMessage">{{ resMessage }}</label>
+      <!-- /> -->
+    </form>
   </div>
 </template>
 <style scope>
@@ -36,71 +31,91 @@
 
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
-// import{store} from "vuex"
-import { Provide } from 'vue-property-decorator'
+import { useStore, AllMutationTypes } from "@/store";
+import routes from "@/router";
+import axios from "axios";
+import { PositionClass, PositionPoint } from "../global/Positions";
+import { sleep } from "@/global/Util";
+type LoginResponse = {
+  ok: boolean;
+  err: string;
+  token: string;
+};
 
-import { State, Getter, Action, Mutation, namespace } from "vuex-class";
-import {
-  action_names,
-  AUTH_NAME_SPACE,
-  AuthRequestFunc,
-} from "../store/auth/types";
-// import Loading  from 'vue-loading-overlay';
-// const loginModule = namespace('loginStore')
-
-@Options({
-  // props: {
-  //   msg: String,
-  // },
-})
+@Options({})
 export default class LoginPage extends Vue {
-  
-
-    // @Provide() private data: any = {
-    //     pageName: 'loginPage'
-    // }
-
-
-  // @namespace(AUTH_NAME_SPACE).Action(action_names.AUTH_REQUEST)
-  // authRequest!: AuthRequestFunc;
-  // isLoading = false;
-  // username = "";
-  // password = "";
-  // resErrorMessage = "";
-  // login() {
-  //   let formatCorrect = true;
-  //   if (this.username === "") {
-  //     this.showErrorMessagByUserNameSide("使用者名稱不得為空白");
-  //     formatCorrect = false;
-  //   }
-  //   if (this.password === "") {
-  //     this.showErrorMessagByPasswordSide("密碼不得為空白");
-  //     formatCorrect = false;
-  //   }
-  //   if (formatCorrect) {
-  //     this.isLoading = true;
-  //     this.authRequest({
-  //       username: this.username,
-  //       password: this.password,
-  //       usersystem: "business_support_system",
-  //     })
-  //       .then(() => {
-  //         this.isLoading = false;
-  //         this.$router.push("/");
-  //       })
-  //       .catch((err) => {
-  //         this.isLoading = false;
-  //         this.resErrorMessage = err;
-  //       });
-  //   }
-  // }
+  username = "";
   // errorMessagByUserNameSideText = "";
-  // showErrorMessagByUserNameSide(errorMessage: string) {
-  //   this.errorMessagByUserNameSideText = errorMessage;
-  // }
+  password = "";
   // errorMessagByPasswordSideText = "";
-  // showErrorMessagByPasswordSide(errorMessage: string) {
-  //   this.errorMessagByPasswordSideText = errorMessage;
-  // }
+  resMessage = "";
+  // do login
+  async login() {
+    let username = this.username;
+    let password = this.password;
+    let err = await this.checkInputCorrect(username, password);
+    if (err !== "") {
+      this.resMessage = err;
+      return;
+    }
+    let position: PositionPoint;
+    // try {
+    //   position = await new PositionClass().getPosition();
+    // } catch (e) {
+    //   this.resMessage =
+    //     e == typeof ""
+    //       ? e
+    //       : "Error : the PositionClass().getPosition() error object should be string";
+    //   return;
+    // }
+    let loginResult = await this.sentLoginRequest(username, password);
+    if (!loginResult.ok) {
+      // err
+      this.resMessage = "Fail to login, username or password is wrong";
+      return;
+    }
+    if (loginResult.token === "") {
+      //  err
+      this.resMessage = "Error, loginResult.token is empty";
+      return;
+    }
+    const store = useStore();
+    store.commit(AllMutationTypes.AUTH.SET_API_ACCESS_TOKEN, loginResult.token);
+    this.resMessage = "Login success, redirect to home after 3 sec ...";
+    // sleep
+    await sleep(3000);
+    routes.push({ name: "Home" });
+    return;
+  }
+  // sent the login request to server
+  private async sentLoginRequest(
+    username: any,
+    password: any
+    // position: PositionPoint
+  ): Promise<LoginResponse> {
+    return new Promise<LoginResponse>((resolve, reject) => {
+      // try {
+      axios
+        .post<LoginResponse>("/api/login", {
+          username: username,
+          password: password,
+          // position: position,
+        })
+        .then((resp) => {
+          resolve(resp.data);
+        })
+        .catch((e) => {
+          reject("Error when call /api/login : " + e);
+        });
+    });
+  }
+  // check if the input format correct
+  private async checkInputCorrect(
+    username: any,
+    password: any
+  ): Promise<string> {
+    // check
+    return "";
+  }
 }
 </script>

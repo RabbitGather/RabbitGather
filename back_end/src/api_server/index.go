@@ -3,14 +3,12 @@ package api_server
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"net/url"
-	"rabbit_gather/src/neo4j_db"
 	"rabbit_gather/util"
 	"time"
 )
@@ -96,54 +94,9 @@ func (w *APIServer) MountService(ctx context.Context) {
 	// - Credentials share disabled
 	// - Preflight requests cached for 12 hours
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:8080"}
+	config.AllowOrigins = []string{"http://localhost:8150"}
 	config.AllowMethods = []string{"POST"}
 	w.ginEngine.Use(cors.New(config))
 	w.ginEngine.POST("/post_article", w.postArticleHandler)
+	w.ginEngine.POST("/login", w.login)
 }
-
-func (w *APIServer) postArticleHandler(c *gin.Context) () {
-	body := json.NewDecoder(c.Request.Body)
-	body.DisallowUnknownFields()
-	type PosistionStruct struct {
-		Latitude  float32 `json:"latitude"`
-		Longitude float32 `json:"longitude"`
-	}
-	articleReceived := struct {
-		Title    string          `json:"title"`
-		Content  string          `json:"content"`
-		Position PosistionStruct `json:"position"`
-	}{}
-	err := body.Decode(&articleReceived)
-	if err != nil {
-		c.AbortWithStatus(http.StatusForbidden)
-		log.Printf("postArticleHandler - body.Decode error : %s", err.Error())
-		return
-	}
-	fmt.Println("Title : ", articleReceived.Title)
-	fmt.Println("Content : ", articleReceived.Content)
-	fmt.Println("Position : ", articleReceived.Position)
-	res , err := neo4j_db.RunScriptWithParameter(
-		"sql/create_new_article.cyp",
-		map[string]interface{}{
-			"username":   "A Name",
-			"title": articleReceived.Title,
-			"content":articleReceived.Content,
-			"longitude": articleReceived.Position.Longitude,
-			"latitude": articleReceived.Position.Latitude,
-		})
-	if err != nil {
-		panic("Error APIServer - postArticleHandler : "+err.Error())
-	}
-	fmt.Println("neo4jTest - res :",res)
-	c.JSON(200, gin.H{
-		"result":articleReceived,
-	})
-}
-
-//
-//
-//type Item struct {
-//	Id int64
-//	Name string
-//}

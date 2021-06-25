@@ -1,30 +1,44 @@
-import { Commit } from "vuex";
-import { createStore } from "vuex";
+import { createStore, createLogger } from "vuex";
 
-const moduleB = {
-  state: () => ({
-    loginData: 'login'
-  }),
-  mutations: { 
-    LOGIN_SET(states: any, params: object) {
-      states.loginData = params
-  }
-  },
-  actions: {
-    loginAction(context: { commit: Commit }, params: object) {
-      context.commit('LOGIN_SET', params)
-  }
-  }
-}
+import { AppModule, AppStore, AppState } from "@/store/app";
+import { AppActionTypes } from "@/store/app/actions";
+import { AppMutationTypes } from "@/store/app/mutations";
 
+import { AuthModule, AuthStore, AuthState } from "@/store/auth";
+import { AuthActionTypes } from "@/store/auth/actions";
+import { AuthMutationTypes } from "@/store/auth/mutations";
+import createPersistedState from "vuex-persistedstate";
 
-export default createStore({
-  state: {
-    version: "",
-  },
-  mutations: {},
-  actions: {},
+export type RootState = {
+  APP: AppState;
+  AUTH: AuthState;
+};
+
+export const AllActionTypes = {
+  APP: AppActionTypes,
+  AUTH: AuthActionTypes,
+};
+
+export const AllMutationTypes = {
+  APP: AppMutationTypes,
+  AUTH: AuthMutationTypes,
+};
+
+export type Store = AuthStore & AppStore;
+
+export const store = createStore({
+  plugins:
+    process.env.NODE_ENV === "production"
+      ? [createPersistedState()]
+      : [createLogger(), createPersistedState()],
   modules: {
-    loginStore:moduleB,
+    APP: AppModule,
+    AUTH: AuthModule,
   },
 });
+
+export function useStore(): Store {
+  return store as Store;
+}
+
+export default store;

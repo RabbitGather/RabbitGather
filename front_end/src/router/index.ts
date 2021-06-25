@@ -105,4 +105,20 @@ router.beforeEach((to, from, next) => {
   next();
 });
 
+import { useStore } from "@/store";
+import { AuthGetterTypes } from "@/store/auth/getters";
+
+function isAuthenticated(): boolean {
+  return useStore().getters[AuthGetterTypes.isAuthenticated];
+}
+
+router.beforeEach((to, from, next) => {
+  console.log("isAuthenticated() : " + isAuthenticated());
+  if (to.name !== "Login" && !isAuthenticated()) {
+    next({ name: "Login" });
+  } else {
+    next();
+  }
+});
+
 export default router;

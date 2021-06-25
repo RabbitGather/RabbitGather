@@ -1,0 +1,15 @@
+{
+  "name": "PeerServer",
+  "version": "0.1.1",
+  "description": "A server in the browser with WebRTC",
+  "dependencies": {
+    "async": "0.1.9",
+    "node-uuid": "1.2.0",
+    "redis": "",
+    "underscore": "",
+    "getconfig": "",
+    "socket.io": "",
+    "express": ""
+  },
+  "main": "server.js"
+}

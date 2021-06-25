@@ -1,0 +1,40 @@
+.top-line {
+    background-color: #EA551F;
+    height: 20px;
+    margin-bottom: 40px;
+    box-shadow: 0px 0px 5px #333;
+}
+
+.title {
+    padding: 30px 40px;
+    margin-bottom: 30px;
+}
+
+.subtitle-part {
+    color: #555;
+}
+.subtitle-part-two {
+    color: #333;
+}
+.goto-server-wrapper {
+    text-align: center;
+}
+.goto-server input {
+    border: 1px solid #CC641F;
+    padding: 3px;
+    letter-spacing: 1px;
+    margin: 5px;
+    color: #663210;
+}
+#serverName {
+    width: 400px;
+}
+<<<<<<< HEAD
+h3 {
+    margin-top: 1em;
+}
+iframe, .senior-poster {
+    margin: 1em .4em;
+}
+=======
+>>>>>>> 7d286f1ce9ea6b4422736128291ac0a467b26f9d

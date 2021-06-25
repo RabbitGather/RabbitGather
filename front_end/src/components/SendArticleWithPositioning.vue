@@ -19,8 +19,8 @@
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
 import axios from "axios";
-import { PositionClass, Position } from "../global/Positions";
-type Article = { title: string; content: string; position: Position };
+import { PositionClass, PositionPoint } from "../global/Positions";
+type Article = { title: string; content: string; position: PositionPoint };
 @Options({
   // props: {
   //   msg: String,
@@ -30,9 +30,8 @@ export default class SendArticleWithPositioning extends Vue {
   titleInput = "";
   contentInput = "";
   resMessage = "";
-  currentPosition!: Position;
+  currentPosition!: PositionPoint;
   async submitForm() {
-
     this.currentPosition = await new PositionClass().getPosition();
 
     this.sendArticleToServer({
