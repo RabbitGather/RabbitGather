@@ -92,6 +92,7 @@ export class Peer extends EventEmitter {
     let userId: string | undefined;
 
     // Deal with overloading
+    // 如果第一個是參數而不是ID則將它作為參數載入
     if (id && id.constructor == Object) {
       options = id as PeerOptions;
     } else if (id) {
@@ -109,6 +110,7 @@ export class Peer extends EventEmitter {
       // randomToken token是自己算出來的
       token: util.randomToken(),
       config: util.defaultConfig,
+      //
       ...options,
     };
     this._options = options;
@@ -227,7 +229,7 @@ export class Peer extends EventEmitter {
   }
 
   /** Handles messages from the server. */
-  // 呼叫這時已經與伺服器(signal srver)建立WS連結，處理回傳資料 
+  // 呼叫這時已經與伺服器(signal srver)建立WS連結，處理回傳資料
   private _handleMessage(message: ServerMessage): void {
     const type = message.type;
     const payload = message.payload;
@@ -269,7 +271,7 @@ export class Peer extends EventEmitter {
         // 這裡的peerId是對方的
         // connectionId是什麼？是"peerjs"嗎？
         let connection = this.getConnection(peerId, connectionId);
-        
+
         if (connection) {
           connection.close();
           logger.warn(
@@ -287,7 +289,6 @@ export class Peer extends EventEmitter {
           this._addConnection(peerId, connection);
           // 只有這裡用到PeerEventType.Call？？
           this.emit(PeerEventType.Call, connection);
-          
         } else if (payload.type === ConnectionType.Data) {
           connection = new DataConnection(peerId, this, {
             connectionId: connectionId,

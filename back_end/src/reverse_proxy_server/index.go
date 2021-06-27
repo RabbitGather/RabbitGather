@@ -65,7 +65,6 @@ func init() {
 		}
 		redirectAddrMap [s] =  u
 	}
-
 }
 
 func (r *ReverseProxyServer) Startup(ctx context.Context , shutdownCallback util.ShutdownCallback)error {
@@ -126,7 +125,7 @@ func (s *ReverseProxyServer) distributor (c *gin.Context) {
 		log.Println("SubHost not exist : ", subHost)
 		return
 	}
-	//fmt.Println("realAddrURL : ",realAddrURL)
+	fmt.Println("redirect to realAddr : ",realAddrURL)
 
 	// 用以認證是由此轉發的請求
 	req.Header.Add(util.IDENTIFICATION_SYMBOL_KEY, util.IDENTIFICATION_SYMBOL)
@@ -134,12 +133,16 @@ func (s *ReverseProxyServer) distributor (c *gin.Context) {
 	req.URL.Scheme = realAddrURL.Scheme
 	req.URL.Host = realAddrURL.Host
 	transport := http.DefaultTransport
+	fmt.Println("Before RoundTrip")
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
 		log.Printf("error in roundtrip: %v", err)
 		c.String(500, "error")
 		return
 	}
+	fmt.Println("After RoundTrip")
+	fmt.Println("resp.StatusCode",resp.StatusCode)
+
 	//resp.StatusCode
 	//fmt.Println("resp.StatusCode : ",resp.StatusCode)
 	c.Status(resp.StatusCode)

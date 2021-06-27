@@ -9,6 +9,7 @@ import (
 	"rabbit_gather/src/api_server"
 	"rabbit_gather/src/reverse_proxy_server"
 	"rabbit_gather/src/web_server"
+	"rabbit_gather/src/websocket_server"
 	"syscall"
 	// database init
 	"rabbit_gather/src/neo4j_db"
@@ -41,6 +42,15 @@ func main() {
 		cancle()
 		panic(err.Error())
 	}
+
+	ctx3, _ := context.WithCancel(ctx)
+	websocketServer := websocket_server.WebsocketServer{}
+	err = websocketServer.Startup(ctx3, shutdownCallback)
+	if err != nil {
+		cancle()
+		panic(err.Error())
+	}
+
 	waitForShutdown(ctx)
 	fmt.Println("Main process end.")
 	finalize()

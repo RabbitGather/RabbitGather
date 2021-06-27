@@ -2,6 +2,7 @@ package util
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 )
 
@@ -17,4 +18,14 @@ func ParseJsonConfic(sst interface{},filePath string)(err error){
 	}
 	err =configFile.Close()
 	return
+}
+
+func ParseRequestJson(rawbody io.ReadCloser,st interface{})error{
+	body := json.NewDecoder(rawbody)
+	body.DisallowUnknownFields()
+	err := body.Decode(st)
+	if err != nil {
+		return err
+	}
+	return  nil
 }

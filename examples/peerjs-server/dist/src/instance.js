@@ -11,6 +11,7 @@ const messagesExpire_1 = require("./services/messagesExpire");
 const webSocketServer_1 = require("./services/webSocketServer");
 const messageHandler_1 = require("./messageHandler");
 const api_1 = require("./api");
+// 創建運行實例
 const createInstance = ({ app, server, options }) => {
     const config = options;
     const realm = new realm_1.Realm();

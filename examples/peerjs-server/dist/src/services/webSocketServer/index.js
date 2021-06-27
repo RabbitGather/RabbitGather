@@ -25,6 +25,10 @@ class WebSocketServer extends events_1.default {
     _onSocketConnection(socket, req) {
         var _a;
         const { query = {} } = url_1.default.parse((_a = req.url) !== null && _a !== void 0 ? _a : '', true);
+        // peerjs?key=peerjs&id=b454f8be-1685-4ef2-9ee2-4cbb6f8a50ed&token=xienkdlwnnr
+        // id:b454f8be-1685-4ef2-9ee2-4cbb6f8a50ed
+        // token:xienkdlwnnr
+        // key:peerjs
         const { id, token, key } = query;
         if (!id || !token || !key) {
             return this._sendErrorAndClose(socket, enums_1.Errors.INVALID_WS_PARAMETERS);

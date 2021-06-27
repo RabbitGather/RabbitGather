@@ -1,24 +1,16 @@
 package api_server
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"io"
+	//"io"
 	"log"
 	"net/http"
 	"rabbit_gather/src/neo4j_db"
+	"rabbit_gather/util"
 )
 
-func parseRequestJson(rawbody io.ReadCloser,st interface{})error{
-	body := json.NewDecoder(rawbody)
-	body.DisallowUnknownFields()
-	err := body.Decode(st)
-	if err != nil {
-		return err
-	}
-	return  nil
-}
 
 func (w *APIServer) postArticleHandler(c *gin.Context) () {
 	type PosistionStruct struct {
@@ -30,7 +22,7 @@ func (w *APIServer) postArticleHandler(c *gin.Context) () {
 		Content  string          `json:"content"`
 		Position PosistionStruct `json:"position"`
 	}{}
-	err:=parseRequestJson(c.Request.Body,&articleReceived)
+	err:=util.ParseRequestJson(c.Request.Body,&articleReceived)
 	if err != nil {
 		c.AbortWithStatus(http.StatusForbidden)
 		log.Printf("postArticleHandler - parseRequestJson error : %s", err.Error())
@@ -64,7 +56,7 @@ func (w *APIServer) login(c *gin.Context) {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}{}
-	err:=parseRequestJson(c.Request.Body,&userinput)
+	err:=util.ParseRequestJson(c.Request.Body,&userinput)
 	if err != nil {
 		c.AbortWithStatus(http.StatusForbidden)
 		log.Printf("postArticleHandler - parseRequestJson error : %s", err.Error())
