@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="ff6d6443-e040-4c4c-8537-79ea01e21401" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/peerjs-go/.dockerignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/.idea/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/.idea/peerjs-go.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/LICENSE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/Makefile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/_examples/interop/main.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/_examples/simple/main.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/api.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/cmd/server/main.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/conn.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/conn_data.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/conn_media.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/emitter/emitter.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/enums/enums.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/go.mod" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/go.sum" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/interop/js/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/interop/js/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/interop/js/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/interop/js/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/interop/py/requirements.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/logger.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/mediastream.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/models/message.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/negotiator.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/options.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/peer.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/peer_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/queue.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/auth.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/auth_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/broken_connections.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/client.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/enum.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/handlers_heartbeat.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/handlers_registry.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/handlers_transmission.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/http.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/http_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/message_expire.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/message_handler.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/message_queue.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/realm.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/realm_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/server.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/server_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/util.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/server/wss.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/socket.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/socket_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/util/util.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/peerjs-go/util/util_test.go" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="GOROOT" path="C:\Program Files\Go" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="false" />
+  </component>
+  <component name="ProjectId" id="1uRUYqk9leEBN7qUKU6TZIlOs0A" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="go.sdk.automatically.set" value="true" />
+    <property name="last_opened_file_path" value="$USER_HOME$" />
+    <property name="settings.editor.selected.configurable" value="go" />
+  </component>
+</project>

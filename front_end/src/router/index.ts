@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import Home from "../views/Home.vue";
+import RealTimeChatBox from "../views/RealTimeChatBox.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -16,6 +17,24 @@ const routes: Array<RouteRecordRaw> = [
         {
           property: "og:description",
           content: "RabbitGather Main page",
+        },
+      ],
+    },
+  },
+  {
+    path: "/chat",
+    name: "RealTimeChatBox",
+    component: RealTimeChatBox,
+    meta: {
+      title: "RabbitGather - RealTimeChatBox",
+      metaTags: [
+        {
+          name: "description",
+          content: "RabbitGather - RealTimeChatBox",
+        },
+        {
+          property: "og:description",
+          content: "RabbitGather - RealTimeChatBox",
         },
       ],
     },

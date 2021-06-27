@@ -94,7 +94,7 @@ func (w *APIServer) MountService(ctx context.Context) {
 	// - Credentials share disabled
 	// - Preflight requests cached for 12 hours
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:8150"}
+	config.AllowOrigins = []string{"http://localhost:8080"}
 	config.AllowMethods = []string{"POST"}
 	w.ginEngine.Use(cors.New(config))
 	w.ginEngine.POST("/post_article", w.postArticleHandler)

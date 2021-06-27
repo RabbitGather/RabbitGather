@@ -1,0 +1,5 @@
+.vscode
+/tmp
+/data
+/build
+__debug_bin
