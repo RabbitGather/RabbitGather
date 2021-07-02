@@ -8,6 +8,7 @@ import (
 	"github.com/kr/pretty"
 	"io"
 	"io/ioutil"
+	"sync"
 
 	//"log"
 	"net/http"
@@ -58,10 +59,11 @@ type PeerJsMessage struct {
 }
 
 type PeerHandler struct {
-	newMessageInputChannel chan *PeerJsMessage
-	connectionCloseChannel chan struct{}
-	conn                   *websocket.Conn
-	key                    string
+	newMessageInputChannel   chan *PeerJsMessage
+	connectionCloseChannel   chan struct{}
+	remotePeerConnectionLock sync.RWMutex
+	remotePeerConnection     *websocket.Conn
+	key                      string
 	//id     string
 	//token  string
 	token string
@@ -69,28 +71,49 @@ type PeerHandler struct {
 	Id               string
 	lastHeartbeat    time.Time
 	HeartbeatTimeout time.Duration
-	heartbeatTicker  *time.Ticker
+	heartbeatTicker  *time.Timer
 }
 
 // Open a websocket connection with client.
 func (h *PeerHandler) OpenConnection(writer http.ResponseWriter, request *http.Request) error {
 	var err error
-	h.conn, err = wsupgrader.Upgrade(writer, request, nil)
+	h.remotePeerConnection, err = wsupgrader.Upgrade(writer, request, nil)
 	if err != nil {
 		return err
 	}
 	h.AddPeerHandler(h)
-	err = h.conn.WriteJSON(PeerJsMessage{Type: OPEN})
+	err = h.WriteJSONToRemotePeerConnection(PeerJsMessage{Type: OPEN})
 	if err != nil {
-		return err
+		fmt.Println("WebsocketServer - Serve default - default : WriteJSON error")
 	}
+	//h.remotePeerConnectionLock.Lock()
+	//defer h.remotePeerConnectionLock.Unlock()
+	//err = h.remotePeerConnection.WriteJSON(PeerJsMessage{Type: OPEN})
+	//if err != nil {
+	//	return err
+	//}
+
 	if h.HeartbeatTimeout == 0 {
 		h.HeartbeatTimeout = DEFULT_HEARTBEAT_TIMEOUT
 	}
-	h.heartbeatTicker = time.NewTicker(h.HeartbeatTimeout)
+	h.heartbeatTicker = time.NewTimer(h.HeartbeatTimeout)
 	go func() {
-		<-h.heartbeatTicker.C
-		h.Close()
+		for {
+			<-h.heartbeatTicker.C
+			if (time.Now().Unix() - h.lastHeartbeat.Unix()) < int64(h.HeartbeatTimeout) {
+				h.heartbeatTicker = time.NewTimer(h.HeartbeatTimeout)
+				continue
+			}else{
+				fmt.Println("heartbeatTicker Timeout.")
+				err1 := h.Close()
+				if err1 != nil {
+					fmt.Println("PeerHandler - heartbeatTicker Error when closing PeerHandler")
+				}
+				return
+			}
+
+		}
+
 	}()
 	return nil
 }
@@ -108,18 +131,21 @@ func (h *PeerHandler) Serve() {
 func (h *PeerHandler) messageReader() {
 	for {
 		rawmessage, err := h.readNewMessage()
+		//fmt.Println("WebsocketServer - Error before if: ",err)
 		if err != nil {
 			if err == ConnectionClosedError {
-				return
+				fmt.Println("PeerHandler - messageReader - ", ConnectionClosedError.Error())
+			} else {
+				fmt.Printf("PeerHandler - Error when readNewMessage: %+v", err)
+				//fmt.Println("PeerHandler - Error when readNewMessage: ", err)
 			}
-			fmt.Println("PeerHandler - Error when readNewMessage")
-			continue
+			return
 		}
 		messageType := rawmessage.Type
 		messageReader := rawmessage.Message
 		binaryMessage, err := ioutil.ReadAll(messageReader)
 		if err != nil {
-			fmt.Println("PeerHandler - Error: ",err.Error())
+			fmt.Println("PeerHandler - Error: ", err.Error())
 			continue
 		}
 		switch messageType {
@@ -143,11 +169,10 @@ func (h *PeerHandler) messageReader() {
 
 		case websocket.PongMessage:
 			fmt.Println("BinaryMessage : ", string(binaryMessage))
-
 		}
 	}
-
 }
+
 //
 //const (
 //	CloseNormalClosure           = 1000
@@ -188,28 +213,25 @@ func (h *PeerHandler) messageReader() {
 //)
 
 type WebsocketRawMessage struct {
-	Message  io.Reader
+	Message io.Reader
 	Type    int
 }
 
 func (h *PeerHandler) readNewMessage() (*WebsocketRawMessage, error) {
-	messageType, reader, err := h.conn.NextReader()
+	h.remotePeerConnectionLock.RLock()
+	messageType, reader, err := h.remotePeerConnection.NextReader()
 	if err != nil {
 		if e, ok := err.(*websocket.CloseError); ok {
-			switch e.Code {
-			case websocket.CloseGoingAway:
-				fmt.Println("Connection close - CloseGoingAway")
-				h.Close()
-				return nil, ConnectionClosedError
-			default:
-				fmt.Println("PeerHandler - NextReader Error: ", err)
-				return nil, err
+			err := h.Close()
+			if err != nil {
+				fmt.Println("PeerHandler - readNewMessage - CloseGoingAway Error when closing PeerHandler")
 			}
-		}else{
-			return nil,e
+			return nil, ConnectionClosedError
+		} else {
+			return nil, e
 		}
-
 	}
+	h.remotePeerConnectionLock.RUnlock()
 
 	return &WebsocketRawMessage{
 		Message: reader,
@@ -228,29 +250,73 @@ func (h *PeerHandler) readNewMessage() (*WebsocketRawMessage, error) {
 func (h *PeerHandler) messageAnalyzer(messageRecieved *PeerJsMessage) {
 	//_, _ = pretty.Println("messageRecieved : ", messageRecieved)
 	messageType := messageRecieved.Type
+
+	getRemotePeerHandler := func(peerHandlerID string) (*PeerHandler, bool) {
+		remotePeerHandler, exist := h.GetPeerHandler(peerHandlerID)
+		if !exist {
+			errorMessage := fmt.Sprintf("Error : Destination Peer ID %s Not Exist.", messageRecieved.Dst)
+			//h.remotePeerConnectionLock.Lock()
+			err := h.WriteJSONToRemotePeerConnection(PeerJsMessage{Type: ERROR, Payload: errorMessage})
+			if err != nil {
+				fmt.Println("WebsocketServer - Serve default - OFFER : WriteJSON error: ", err.Error())
+			}
+			//h.remotePeerConnectionLock.Unlock()
+
+			fmt.Println(SentToTargetNotFound.Error())
+			return nil, false
+		}
+		return remotePeerHandler, true
+	}
+	transportToDst := func() (*PeerHandler, bool) {
+		remotePeerHandler, ok := getRemotePeerHandler(messageRecieved.Dst)
+		if !ok {
+			return nil, false
+		}
+		err := h.SentTo(remotePeerHandler, messageRecieved)
+		if err != nil {
+			fmt.Println("Error - transportToDst SentTo", err.Error())
+			return nil, false
+		}
+		return remotePeerHandler, true
+	}
 	switch messageType {
 	case OFFER:
 		fmt.Println("OFFER EVENT")
-		h.SentTo(messageRecieved.Dst, messageRecieved)
+		remotePeerHandler, success := transportToDst()
+		if success {
+			h.RegisterConnection(h, remotePeerHandler)
+		}
 	case OPEN:
 		fmt.Println("OPEN EVENT")
-		pretty.Println(messageRecieved)
+		_, _ = pretty.Println(messageRecieved)
 	case LEAVE:
 		fmt.Println("LEAVE EVENT")
-		h.SentTo(messageRecieved.Dst, messageRecieved)
-		h.Close()
+		remotePeerHandler, success := transportToDst()
+		if success {
+			h.RegisterConnection(h, remotePeerHandler)
+		}
+		//err:=h.Close()
+		//if err != nil {
+		//	fmt.Println("PeerHandler - messageAnalyzer - LEAVE Close Handler Error:",err.Error())
+		//}
 	case CANDIDATE:
 		fmt.Println("CANDIDATE EVENT")
-		h.SentTo(messageRecieved.Dst, messageRecieved)
-
+		remotePeerHandler, success := transportToDst()
+		if success {
+			h.RegisterConnection(h, remotePeerHandler)
+		}
 	case ANSWER:
 		fmt.Println("ANSWER EVENT")
-		h.SentTo(messageRecieved.Dst, messageRecieved)
-
+		remotePeerHandler, success := transportToDst()
+		if success {
+			h.RegisterConnection(h, remotePeerHandler)
+		}
 	case EXPIRE:
 		fmt.Println("EXPIRE EVENT")
-		pretty.Println(messageRecieved)
-
+		remotePeerHandler, success := transportToDst()
+		if success {
+			h.RegisterConnection(h, remotePeerHandler)
+		}
 	case HEARTBEAT:
 		//fmt.Println("HEARTBEAT EVENT")
 		h.ResetLastHeartbeat(time.Now())
@@ -264,12 +330,17 @@ func (h *PeerHandler) messageAnalyzer(messageRecieved *PeerJsMessage) {
 	default:
 		errorMessage := "Error : Unsupported message type - " + messageType
 		fmt.Println(errorMessage)
-		err := h.conn.WriteJSON(PeerJsMessage{Type: ERROR, Payload: errorMessage})
+		err := h.WriteJSONToRemotePeerConnection(PeerJsMessage{Type: ERROR, Payload: errorMessage})
 		if err != nil {
 			fmt.Println("WebsocketServer - Serve default - default : WriteJSON error")
 		}
+
 	}
 }
+
+//func transportToDst() {
+//
+//}
 
 // Parse the url query, and save in PeerHandler, throwing an error if the query format is not correct.
 func (h *PeerHandler) ParseQuery(urlQuery url.Values) error {
@@ -299,53 +370,50 @@ const DEFULT_HEARTBEAT_TIMEOUT = time.Minute
 
 func (h *PeerHandler) ResetLastHeartbeat(now time.Time) {
 	// Default 60000
+	//fmt.Println("ResetLastHeartbeat - ", now.String())
 	h.lastHeartbeat = now
-
-	h.heartbeatTicker.Reset(h.HeartbeatTimeout)
+	//h.heartbeatTicker.Stop()
+	//h.heartbeatTicker.Reset(h.HeartbeatTimeout)
 	//h.heartbeatTicker = time.NewTicker(h.HeartbeatTimeout)
 }
 
-func (h PeerHandler) GetPeerHandler(dst string) (*PeerHandler, bool) {
-	handler , exist := allPeerHandlers[dst]
-	return handler , exist
-}
-
 func (h *PeerHandler) GetConnection() *websocket.Conn {
-	return h.conn
+	return h.remotePeerConnection
 }
 
-func (h *PeerHandler) RemoveConnection(id string) {
+var SentToTargetNotFound = errors.New("Destination Peer not found.")
 
-}
-
-func (h *PeerHandler) SentTo(targetPeerID string, message *PeerJsMessage) {
-	//fmt.Println("h.Id: ",h.Id)
-	//fmt.Println("targetPeerID: ",targetPeerID)
-	//fmt.Println("allPeerHandlers: ",allPeerHandlers)
-	remotePeerHandler, exist := h.GetPeerHandler(targetPeerID)
-
-	if !exist {
-		errorMessage := fmt.Sprintf("Error : Destination Peer ID %s Not Exist.", targetPeerID)
-		err := h.conn.WriteJSON(PeerJsMessage{Type: ERROR, Payload: errorMessage})
-		if err != nil {
-			fmt.Println("WebsocketServer - Serve default - OFFER : WriteJSON error")
-		}
-		return
-	}
+func (h *PeerHandler) SentTo(remotePeerHandler *PeerHandler, message *PeerJsMessage) error {
+	h.remotePeerConnectionLock.Lock()
+	defer h.remotePeerConnectionLock.Unlock()
 	message.Src = h.Id
 	remoteConnection := remotePeerHandler.GetConnection()
 	err := remoteConnection.WriteJSON(*message)
 	if err != nil {
-		fmt.Println("WebsocketServer - Serve Error - OFFER : WriteJSON error")
+		return err
 	}
+	return nil
 }
 
-func (h *PeerHandler) Close() {
+func (h *PeerHandler) Close() error {
 	fmt.Println("PeerHandler - Close")
 	// Refuse new input
 	h.connectionCloseChannel <- struct{}{}
-	h.RemoveConnection(h.Id)
-
+	h.remotePeerConnectionLock.Lock()
+	err := h.remotePeerConnection.Close()
+	h.remotePeerConnectionLock.Unlock()
+	if err != nil {
+		return err
+	}
+	leaveMessage := &PeerJsMessage{
+		Type:    LEAVE,
+		Payload: nil,
+		Dst:     "",
+		Src:     "",
+	}
+	h.BroadcastToAllConnected(leaveMessage)
+	h.RemovePeerHandler(h.Id)
+	return nil
 }
 
 func (h *PeerHandler) messageHandler() {
@@ -359,7 +427,37 @@ func (h *PeerHandler) messageHandler() {
 
 	}
 }
+
 var allPeerHandlers = make(map[string]*PeerHandler)
+
 func (h PeerHandler) AddPeerHandler(handler *PeerHandler) {
 	allPeerHandlers[handler.Id] = handler
+}
+func (h PeerHandler) GetPeerHandler(dst string) (*PeerHandler, bool) {
+	handler, exist := allPeerHandlers[dst]
+	return handler, exist
+}
+
+func (h *PeerHandler) RemovePeerHandler(id string) {
+	delete(allPeerHandlers, id)
+}
+
+func (h *PeerHandler) BroadcastToAllConnected(message *PeerJsMessage) {
+
+}
+
+var connectionPair = make(map[*PeerHandler]*PeerHandler)
+
+func (h2 *PeerHandler) RegisterConnection(fromHandler *PeerHandler, toHandler *PeerHandler) {
+	connectionPair[fromHandler] = toHandler
+}
+
+func (h *PeerHandler) WriteJSONToRemotePeerConnection(message PeerJsMessage) error {
+	h.remotePeerConnectionLock.Lock()
+	defer h.remotePeerConnectionLock.Unlock()
+	err := h.remotePeerConnection.WriteJSON(message)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -26,5 +26,5 @@ https://www.figma.com/file/2RU9Wj1U7LAgoBBEVYrVdR/RabbitGater?node-id=0%3A1
 * [ ] 建立透過定位搜尋半徑內文章的功能
 * [ ] 優化UI
 * [ ] 增加定位精度
-* [ ] p2p瀏覽器伺服器，以及配套後端服務
+* [x] p2p瀏覽器伺服器，以及配套後端服務
 * [ ] 

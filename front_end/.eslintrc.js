@@ -20,6 +20,8 @@ module.exports = {
     "no-empty": "off",
     "@typescript-eslint/no-inferrable-types": "off",
     "@typescript-eslint/no-this-alias": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+
     /*
     Fix Error
     Don't use `{}` as a type. `{}` actually means "any non-nullish value"
