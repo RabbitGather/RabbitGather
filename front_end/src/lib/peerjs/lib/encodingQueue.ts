@@ -14,7 +14,7 @@ export class EncodingQueue extends EventEmitter {
       this._processing = false;
 
       if (evt.target) {
-        this.emit('done', evt.target.result as ArrayBuffer);
+        this.emit("done", evt.target.result as ArrayBuffer);
       }
 
       this.doNextTask();
@@ -24,8 +24,8 @@ export class EncodingQueue extends EventEmitter {
       logger.error(`EncodingQueue error:`, evt);
       this._processing = false;
       this.destroy();
-      this.emit('error', evt);
-    }
+      this.emit("error", evt);
+    };
   }
 
   get queue(): Blob[] {
@@ -59,6 +59,6 @@ export class EncodingQueue extends EventEmitter {
 
     this._processing = true;
 
-    this.fileReader.readAsArrayBuffer(this.queue.shift());
+    this.fileReader.readAsArrayBuffer(this.queue.shift() as Blob);
   }
 }

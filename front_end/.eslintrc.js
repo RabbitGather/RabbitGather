@@ -17,6 +17,9 @@ module.exports = {
     "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-undef": "off",
+    "no-empty": "off",
+    "@typescript-eslint/no-inferrable-types": "off",
+    "@typescript-eslint/no-this-alias": "off",
     /*
     Fix Error
     Don't use `{}` as a type. `{}` actually means "any non-nullish value"

@@ -1,7 +1,6 @@
 package reverse_proxy_server
 
 import (
-	"bufio"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -10,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"rabbit_gather/util"
 	"strings"
@@ -106,6 +106,7 @@ func (r *ReverseProxyServer) Startup(ctx context.Context , shutdownCallback util
 
 // 分配請求的主要邏輯
 func (s *ReverseProxyServer) distributor (c *gin.Context) {
+	//httputil.NewSingleHostReverseProxy()
 	fmt.Println("ReverseProxyServer - Request Host : ",c.Request.Host)
 	req := c.Request
 	if req.Host == ""{
@@ -126,46 +127,63 @@ func (s *ReverseProxyServer) distributor (c *gin.Context) {
 		return
 	}
 	fmt.Println("redirect to realAddr : ",realAddrURL)
+	proxy := httputil.NewSingleHostReverseProxy(realAddrURL)
+		proxy.Director = func(req *http.Request) {
+			//req.Header = c.Request.Header
+			//req.Host = realAddrURL.Host
+			req.URL.Scheme = realAddrURL.Scheme
+			req.URL.Host = realAddrURL.Host
+			//req.URL.Path = realAddrURL.Path
+			req.Header.Add(util.IDENTIFICATION_SYMBOL_KEY, util.IDENTIFICATION_SYMBOL)
 
+		}
+	proxy.ModifyResponse = func(response *http.Response) error {
+		response.Header.Del(util.IDENTIFICATION_SYMBOL_KEY)
+		fmt.Println("After RoundTrip")
+		fmt.Println("resp.StatusCode",response.StatusCode)
+
+		return nil
+	}
+	proxy.ServeHTTP(c.Writer, c.Request)
 	// 用以認證是由此轉發的請求
-	req.Header.Add(util.IDENTIFICATION_SYMBOL_KEY, util.IDENTIFICATION_SYMBOL)
-	// 改變請求對象為目標伺服器位置
-	req.URL.Scheme = realAddrURL.Scheme
-	req.URL.Host = realAddrURL.Host
-	transport := http.DefaultTransport
-	fmt.Println("Before RoundTrip")
-	resp, err := transport.RoundTrip(req)
-	if err != nil {
-		log.Printf("error in roundtrip: %v", err)
-		c.String(500, "error")
-		return
-	}
-	fmt.Println("After RoundTrip")
-	fmt.Println("resp.StatusCode",resp.StatusCode)
-
-	//resp.StatusCode
-	//fmt.Println("resp.StatusCode : ",resp.StatusCode)
-	c.Status(resp.StatusCode)
-	resp.Header.Del(util.IDENTIFICATION_SYMBOL_KEY)
-
-	for k, vv := range resp.Header {
-		for _, v := range vv {
-			c.Header(k, v)
-		}
-	}
-	if resp.StatusCode >= 400 {
-		c.AbortWithStatus(resp.StatusCode)
-		return
-	}
-	defer resp.Body.Close()
-	i, err := bufio.NewReader(resp.Body).WriteTo(c.Writer)
-	if err != nil {
-		if err == http.ErrBodyNotAllowed{
-			c.Writer.WriteHeader(resp.StatusCode)
-		}else{
-			panic(fmt.Sprintf("i : %d Error : %s", i, err.Error()))
-		}
-	}
+	//req.Header.Add(util.IDENTIFICATION_SYMBOL_KEY, util.IDENTIFICATION_SYMBOL)
+	//// 改變請求對象為目標伺服器位置
+	//req.URL.Scheme = realAddrURL.Scheme
+	//req.URL.Host = realAddrURL.Host
+	//transport := http.DefaultTransport
+	//fmt.Println("Before RoundTrip")
+	//resp, err := transport.RoundTrip(req)
+	//if err != nil {
+	//	log.Printf("error in roundtrip: %v", err)
+	//	c.String(500, "error")
+	//	return
+	//}
+	//fmt.Println("After RoundTrip")
+	//fmt.Println("resp.StatusCode",resp.StatusCode)
+	//
+	////resp.StatusCode
+	////fmt.Println("resp.StatusCode : ",resp.StatusCode)
+	//c.Status(resp.StatusCode)
+	//resp.Header.Del(util.IDENTIFICATION_SYMBOL_KEY)
+	//
+	//for k, vv := range resp.Header {
+	//	for _, v := range vv {
+	//		c.Header(k, v)
+	//	}
+	//}
+	//if resp.StatusCode >= 400 {
+	//	c.AbortWithStatus(resp.StatusCode)
+	//	return
+	//}
+	//defer resp.Body.Close()
+	//i, err := bufio.NewReader(resp.Body).WriteTo(c.Writer)
+	//if err != nil {
+	//	if err == http.ErrBodyNotAllowed{
+	//		c.Writer.WriteHeader(resp.StatusCode)
+	//	}else{
+	//		panic(fmt.Sprintf("i : %d Error : %s", i, err.Error()))
+	//	}
+	//}
 	return
 }
 //func (s *ReverseProxyServer) AfterServerStartup() {

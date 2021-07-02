@@ -1,5 +1,7 @@
 module.exports = {
   devServer: {
+    sockHost: "peerjs.localhost",
+    disableHostCheck: true,
     // host: "meowalien.com",
     // https: true,
     // public: "https://meowalien.com:8080/",

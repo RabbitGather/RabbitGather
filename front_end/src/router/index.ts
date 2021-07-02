@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import Home from "../views/Home.vue";
-import RealTimeChatBox from "../views/RealTimeChatBox.vue";
+import RealTimeChatBox from "../views/RealTimeChatBox_receiver.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {

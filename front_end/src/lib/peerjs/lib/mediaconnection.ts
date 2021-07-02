@@ -1,7 +1,11 @@
 import { util } from "./util";
 import logger from "./logger";
 import { Negotiator } from "./negotiator";
-import { ConnectionType, ConnectionEventType, ServerMessageType } from "./enums";
+import {
+  ConnectionType,
+  ConnectionEventType,
+  ServerMessageType,
+} from "./enums";
 import { Peer } from "./peer";
 import { BaseConnection } from "./baseconnection";
 import { ServerMessage } from "./servermessage";
@@ -13,16 +17,20 @@ import { AnswerOption } from "..";
 export class MediaConnection extends BaseConnection {
   private static readonly ID_PREFIX = "mc_";
 
-  private _negotiator: Negotiator;
-  private _localStream: MediaStream;
-  private _remoteStream: MediaStream;
+  private _negotiator: Negotiator | null;
+  private _localStream: MediaStream | null;
+  private _remoteStream!: MediaStream | null;
 
   get type() {
     return ConnectionType.Media;
   }
 
-  get localStream(): MediaStream { return this._localStream; }
-  get remoteStream(): MediaStream { return this._remoteStream; }
+  get localStream(): MediaStream {
+    return this._localStream as MediaStream;
+  }
+  get remoteStream(): MediaStream {
+    return this._remoteStream as MediaStream;
+  }
 
   constructor(peerId: string, provider: Peer, options: any) {
     super(peerId, provider, options);
@@ -37,12 +45,12 @@ export class MediaConnection extends BaseConnection {
     if (this._localStream) {
       this._negotiator.startConnection({
         _stream: this._localStream,
-        originator: true
+        originator: true,
       });
     }
   }
 
-  addStream(remoteStream) {
+  addStream(remoteStream: any) {
     logger.log("Receiving stream", remoteStream);
 
     this._remoteStream = remoteStream;
@@ -56,11 +64,11 @@ export class MediaConnection extends BaseConnection {
     switch (message.type) {
       case ServerMessageType.Answer:
         // Forward to negotiator
-        this._negotiator.handleSDP(type, payload.sdp);
+        this._negotiator!.handleSDP(type, payload.sdp);
         this._open = true;
         break;
       case ServerMessageType.Candidate:
-        this._negotiator.handleCandidate(payload.candidate);
+        this._negotiator!.handleCandidate(payload.candidate);
         break;
       default:
         logger.warn(`Unrecognized message type:${type} from peer:${this.peer}`);
@@ -82,9 +90,12 @@ export class MediaConnection extends BaseConnection {
       this.options.sdpTransform = options.sdpTransform;
     }
 
-    this._negotiator.startConnection({ ...this.options._payload, _stream: stream });
+    this._negotiator!.startConnection({
+      ...this.options._payload,
+      _stream: stream,
+    });
     // Retrieve lost messages stored because PeerConnection not set up.
-    const messages = this.provider._getMessages(this.connectionId);
+    const messages = this.provider!._getMessages(this.connectionId);
 
     for (let message of messages) {
       this.handleMessage(message);

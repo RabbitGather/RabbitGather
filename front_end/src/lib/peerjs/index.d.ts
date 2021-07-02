@@ -33,7 +33,11 @@ declare class Peer {
    * @param stream The caller's media stream
    * @param options Metadata associated with the connection, passed in by whoever initiated the connection.
    */
-  call(id: string, stream: MediaStream, options?: Peer.CallOption): Peer.MediaConnection;
+  call(
+    id: string,
+    stream: MediaStream,
+    options?: Peer.CallOption
+  ): Peer.MediaConnection;
   /**
    * Set listeners for peer events.
    * @param event Event name
@@ -104,7 +108,10 @@ declare class Peer {
    * @param peerId
    * @param connectionId
    */
-  getConnection(peerId: string, connectionId: string): Peer.MediaConnection | Peer.DataConnection | null;
+  getConnection(
+    peerId: string,
+    connectionId: string
+  ): Peer.MediaConnection | Peer.DataConnection | null;
 
   /**
    * Get a list of available peer IDs
@@ -164,12 +171,13 @@ declare namespace Peer {
     on(event: "open", cb: () => void): void;
     on(event: "close", cb: () => void): void;
     on(event: "error", cb: (err: any) => void): void;
-    off(event: string, fn: Function, once?: boolean): void;
+    // 沒實現阿
+    // off(event: string, fn: Function, once?: boolean): void;
     dataChannel: RTCDataChannel;
     label: string;
     metadata: any;
     open: boolean;
-    peerConnection: RTCPeerConnection;
+    peerConnection: RTCPeerConnection | null;
     peer: string;
     reliable: boolean;
     serialization: string;
@@ -189,13 +197,13 @@ declare namespace Peer {
     off(event: string, fn: Function, once?: boolean): void;
     open: boolean;
     metadata: any;
-    peerConnection: RTCPeerConnection;
+    peerConnection: RTCPeerConnection | null;
     peer: string;
     type: string;
   }
 
   interface UtilSupportsObj {
-    browser: boolean,
+    browser: boolean;
     webRTC: boolean;
     audioVideo: boolean;
     data: boolean;

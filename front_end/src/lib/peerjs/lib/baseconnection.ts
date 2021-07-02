@@ -7,9 +7,9 @@ export abstract class BaseConnection extends EventEmitter {
   protected _open = false;
 
   readonly metadata: any;
-  connectionId: string;
+  connectionId!: string;
 
-  peerConnection: RTCPeerConnection;
+  peerConnection!: RTCPeerConnection | null;
 
   abstract get type(): ConnectionType;
 
@@ -19,7 +19,7 @@ export abstract class BaseConnection extends EventEmitter {
 
   constructor(
     readonly peer: string,
-    public provider: Peer,
+    public provider: Peer | null,
     readonly options: any
   ) {
     super();

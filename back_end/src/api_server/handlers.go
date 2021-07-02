@@ -4,6 +4,8 @@ import (
 	//"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"rabbit_gather/src/auth"
+
 	//"io"
 	"log"
 	"net/http"
@@ -64,10 +66,25 @@ func (w *APIServer) login(c *gin.Context) {
 	}
 	fmt.Println("Username : ",userinput.Username)
 	fmt.Println("Password : ",userinput.Password)
+	err = auth.AccountManagement{}.CheckUserAndPassword(userinput.Username,userinput.Password)
+	if err != nil {
+		log.Println("Error when checking username and password : ",err.Error())
+		c.AbortWithStatus(http.StatusForbidden)
+		log.Printf("postArticleHandler - parseRequestJson error : %s", err.Error())
+		return
+	}
+	userInst := auth.AccountManagement{}.GetUserByName(userinput.Username)
+	userToken := userInst.NewToken()
+
 	c.JSON(200, gin.H{
 		"ok": true,
 		"err": "",
-		"token": "THE_TOKEN",
+		"token":userToken.ToString(), //"THE_TOKEN",
 	})
 
+}
+
+func checkUserAndPassword(username string, password string) error {
+	fmt.Println("Not implemented : checkUserAndPassword")
+	return nil
 }

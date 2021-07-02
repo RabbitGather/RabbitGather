@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/gin-contrib/cors"
+	"github.com/gorilla/websocket"
+
 	//"github.com/gin-contrib/cors"
 
 	//"github.com/gin-contrib/cors"
@@ -55,6 +57,7 @@ func (w *WebsocketServer) Startup(ctx context.Context, shutdownCallback util.Shu
 			ClientAuth: tls.NoClientCert,
 		},
 	}
+	// 來源檢查
 	w.ginEngine.Use(func(c *gin.Context) {
 		req := c.Request
 		if !util.CheckIDENTIFICATION_SYMBOL(req) {
@@ -94,22 +97,24 @@ func (w *WebsocketServer) MountService(ctx context.Context) {
 	// - Credentials share disabled
 	// - Preflight requests cached for 12 hours
 
-	//
 	config := cors.DefaultConfig()
 	config.AllowAllOrigins = true
 	//config.AllowOrigins = []string{"http://localhost:8081","https://localhost:8081"}
-	config.AllowMethods = []string{"GET"}
+	config.AllowMethods = []string{"GET","POST"}
 	w.ginEngine.Use(cors.New(config))
-	//w.ginEngine.Use(w.IDGetter)
-	w.ginEngine.GET("/peerjs/id", w.IDGetter)
+	//w.ginEngine.Use(w.peerHandler)
+	w.ginEngine.GET("/peerjs/id", w.peerIDGetter)
 	w.ginEngine.GET("/peerjs", w.peerHandler)
 }
 
-func (w *WebsocketServer) IDGetter(c *gin.Context) {
-	//c.Writer.Write([]byte("b454f8be-1685-4ef2-9ee2-4cbb6f8a50ed"))
-	fmt.Println("origin", c.Request.Header.Get("Origin"))
-	//pretty.Println("Access-Control-Allow-Origin : ",c.GetHeader("Access-Control-Allow-Origin"))
-
-	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte("b454f8be-1685-4ef2-9ee2-4cbb6f8a50ed"))
-	//c.Next()
+func (w *WebsocketServer) sentOpenMessage(conn *websocket.Conn) error {
+	openMessage := PeerJsMessage{
+		Type:"OPEN",
+	}
+	err := conn.WriteJSON(openMessage)
+	if err != nil {
+		return err
+	}
+	return nil
 }
+
