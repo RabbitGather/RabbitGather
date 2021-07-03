@@ -108,7 +108,7 @@ func (w *WebsocketServer) MountService(ctx context.Context) {
 }
 
 func (w *WebsocketServer) sentOpenMessage(conn *websocket.Conn) error {
-	openMessage := PeerJsMessage{
+	openMessage := PeerJsTextMessage{
 		Type:"OPEN",
 	}
 	err := conn.WriteJSON(openMessage)

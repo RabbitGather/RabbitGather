@@ -8,8 +8,8 @@
     <p>{{ status }}</p>
     <div class="connectionBox">
       <h2>Connection ID:</h2>
-      <p v-show="brokeringID !== ''">
-        {{ brokeringID }}
+      <p v-show="myPeerID !== ''">
+        {{ myPeerID }}
       </p>
     </div>
     <input v-model="currentinput" class="messageInput" type="text" />
@@ -38,12 +38,92 @@ import { useStore, AllMutationTypes } from "@/store";
 export default class RealTimeChatBox extends Vue {
   status = "Initializing ...";
   currentinput = "";
-  brokeringID = "(Not generated yet ...)";
+  myPeerID = "(Not generated yet ...)";
   chatList = [{ name: "OK", message: "MESSAGE" }];
   connectTarget = "";
   private peer!: Peer;
   private lastPeerId?: string;
   private connectionToRemotePeers?: DataConnection;
+  startPeerjs() {
+    let vueStore = useStore();
+    let apiToken = vueStore.state.AUTH.API_ACCESS_TOKEN as string;
+    this.peer = new Peer(undefined, {
+      host: "peerjs.localhost",
+      port: 443,
+      path: "/",
+      key: "peerjs",
+      secure: true,
+      token: apiToken,
+      config: RTCconnectionToRemotePeersConfiguration,
+      debug: 3,
+    });
+
+    this.peer.on(PeerEventType.Open, (peerID: string) => {
+      console.log("On open event");
+      if (peerID === null) {
+        console.log("Error : Received null id from peer open");
+        return;
+      } else {
+        this.lastPeerId = this.myPeerID;
+      }
+
+      console.log("NewPeerID : " + peerID);
+      this.myPeerID = peerID;
+      this.status = "Awaiting connection...";
+    });
+
+    this.peer.on(
+      PeerEventType.Connection,
+      (remoteConnection: DataConnection) => {
+        console.log("On connection event");
+
+        // Allow only a single connection
+        if (this.connectionToRemotePeers && this.connectionToRemotePeers.open) {
+          remoteConnection.on("open", () => {
+            remoteConnection.send("Already connected to another client");
+
+            setTimeout(() => {
+              remoteConnection.close();
+            }, 500);
+          });
+          return;
+        }
+
+        this.connectionToRemotePeers = remoteConnection;
+        console.log("Connected to: " + this.connectionToRemotePeers.peer);
+        this.status = "Connected to: " + this.connectionToRemotePeers.peer;
+        this.readyToReceiveMessage();
+      }
+    );
+
+    this.peer.on(PeerEventType.Disconnected, () => {
+      console.log("On disconnected event");
+
+      this.status =
+        "Connection to " +
+        this.connectionToRemotePeers!.peer +
+        " lost. Please reconnect";
+      console.log(this.status);
+
+      if (this.lastPeerId) {
+        console.log("Try to reconnect  to: " + this.lastPeerId);
+        this.peer.reconnect();
+      }
+    });
+    this.peer.on(PeerEventType.Close, () => {
+      console.log("On close event");
+
+      this.connectionToRemotePeers = undefined;
+      this.status = "Connection destroyed. Please refresh";
+      console.log("Connection destroyed");
+    });
+    this.peer.on(PeerEventType.Error, (err: Error) => {
+      console.log("On error event");
+      console.log(err);
+      // alert("" + err);
+    });
+  }
+  beforeMount() {}
 
   SubmitMessage() {
     if (this.connectionToRemotePeers && this.connectionToRemotePeers.open) {
@@ -87,83 +167,6 @@ export default class RealTimeChatBox extends Vue {
     this.connectionToRemotePeers!.on(ConnectionEventType.Close, () => {
       this.status = "Connection reset<br>Awaiting connection...";
       this.connectionToRemotePeers = undefined;
-    });
-  }
-  beforeMount() {
-    let vueStore = useStore();
-    let apiToken = vueStore.state.AUTH.API_ACCESS_TOKEN as string;
-    // routes.
-    // let apitoken = vueStore.state.AUTH.API_ACCESS_TOKEN;
-    this.peer = new Peer(undefined, {
-      host: "peerjs.localhost",
-      port: 443,
-      path: "/",
-      key: "peerjs",
-      secure: true,
-      token: apiToken,
-      config: RTCconnectionToRemotePeersConfiguration,
-      debug: 3,
-    });
-    let peer = this.peer;
-    peer.on(PeerEventType.Open, (brokeringID: string) => {
-      console.log("On open event");
-      if (brokeringID === null) {
-        console.log("Error : Received null id from peer open");
-        return;
-      } else {
-        this.lastPeerId = brokeringID;
-      }
-
-      console.log("MyPeerID : " + brokeringID);
-      this.brokeringID = brokeringID;
-      this.status = "Awaiting connection...";
-    });
-    peer.on(PeerEventType.Connection, (remoteConnection: DataConnection) => {
-      console.log("On connection event");
-
-      // Allow only a single connection
-      if (this.connectionToRemotePeers && this.connectionToRemotePeers.open) {
-        remoteConnection.on("open", () => {
-          remoteConnection.send("Already connected to another client");
-
-          setTimeout(() => {
-            remoteConnection.close();
-          }, 500);
-        });
-        return;
-      }
-
-      this.connectionToRemotePeers = remoteConnection;
-      console.log("Connected to: " + this.connectionToRemotePeers.peer);
-      this.status = "Connected to: " + this.connectionToRemotePeers.peer;
-      this.readyToReceiveMessage();
-    });
-
-    peer.on(PeerEventType.Disconnected, () => {
-      console.log("On disconnected event");
-
-      this.status =
-        "Connection to " +
-        this.connectionToRemotePeers!.peer +
-        " lost. Please reconnect";
-      console.log(this.status);
-
-      if (this.lastPeerId) {
-        console.log("Try to reconnect  to: " + this.lastPeerId);
-        peer.reconnect();
-      }
-    });
-    peer.on(PeerEventType.Close, () => {
-      console.log("On close event");
-
-      this.connectionToRemotePeers = undefined;
-      this.status = "Connection destroyed. Please refresh";
-      console.log("Connection destroyed");
-    });
-    peer.on(PeerEventType.Error, (err: Error) => {
-      console.log("On error event");
-      console.log(err);
-      // alert("" + err);
     });
   }
 }
