@@ -61,3 +61,20 @@ let step2_answer_recieve = {
   },
   dst: "90b30418-54ba-4122-bdee-19aef3337a5a",
 };
+
+let sss = {
+  type: "OFFER",
+  payload: {
+    sdp: {
+      type: "offer",
+      sdp: "v=0\r\no=- 6265712925003995093 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:GZ5O\r\na=ice-pwd:cJylSY5M10OPn54bejffQMOt\r\na=ice-options:trickle\r\na=fingerprint:sha-256 A4:FD:9C:69:53:A7:18:09:45:E0:97:27:BE:9B:E5:C5:D3:05:EA:E7:54:70:EF:71:9D:F5:51:76:D3:5D:47:E7\r\na=setup:actpass\r\na=mid:0\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n",
+    },
+    type: "data",
+    connectionId: "dc_ukde9blu45",
+    browser: "chrome",
+    label: "dc_ukde9blu45",
+    reliable: true,
+    serialization: "binary",
+  },
+  dst: "",
+};

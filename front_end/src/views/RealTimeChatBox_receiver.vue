@@ -1,12 +1,15 @@
 <template>
   <div class="ChatingBox">
     <h1>Real Time Chating Box</h1>
-    <h2>Connect To :</h2>
-    <input type="text" v-model="connectTarget" />
-    <button @click="DoConnect">SentMessage</button>
-    <h2>Status:</h2>
-    <p>{{ status }}</p>
-    <div class="connectionBox">
+    <div class="connection_box">
+      <h2>Connect To :</h2>
+      <input type="text" v-model="connectTarget" />
+      <button @click="DoConnect">Connect</button>
+    </div>
+
+    <div class="status_box">
+      <h2>Status:</h2>
+      <p>{{ status }}</p>
       <h2>Connection ID:</h2>
       <p v-show="myPeerID !== ''">
         {{ myPeerID }}
@@ -36,14 +39,14 @@ import { useStore, AllMutationTypes } from "@/store";
   },
 })
 export default class RealTimeChatBox extends Vue {
+  nickname = "";
   status = "Initializing ...";
   currentinput = "";
   myPeerID = "(Not generated yet ...)";
   chatList = [{ name: "OK", message: "MESSAGE" }];
   connectTarget = "";
   private peer!: Peer;
-  private lastPeerId?: string;
-  private connectionToRemotePeers?: DataConnection;
+
   startPeerjs() {
     let vueStore = useStore();
     let apiToken = vueStore.state.AUTH.API_ACCESS_TOKEN as string;
@@ -63,110 +66,111 @@ export default class RealTimeChatBox extends Vue {
       if (peerID === null) {
         console.log("Error : Received null id from peer open");
         return;
-      } else {
-        this.lastPeerId = this.myPeerID;
       }
-
       console.log("NewPeerID : " + peerID);
       this.myPeerID = peerID;
       this.status = "Awaiting connection...";
     });
 
-    this.peer.on(
-      PeerEventType.Connection,
-      (remoteConnection: DataConnection) => {
-        console.log("On connection event");
-
-        // Allow only a single connection
-        if (this.connectionToRemotePeers && this.connectionToRemotePeers.open) {
-          remoteConnection.on("open", () => {
-            remoteConnection.send("Already connected to another client");
-
-            setTimeout(() => {
-              remoteConnection.close();
-            }, 500);
-          });
-          return;
-        }
-
-        this.connectionToRemotePeers = remoteConnection;
-        console.log("Connected to: " + this.connectionToRemotePeers.peer);
-        this.status = "Connected to: " + this.connectionToRemotePeers.peer;
-        this.readyToReceiveMessage();
+    // Connection from others
+    this.peer.on(PeerEventType.Connection, (connection: DataConnection) => {
+      console.log("On connection event");
+      try {
+        this.appendNewConnection(connection);
+      } catch (e) {
+        // connection.provider
+        // console.log(connection.provider)
+        this.status = "Fail to Connect to:" + connection.peer + "Error :" + e;
+        return;
       }
-    );
 
-    this.peer.on(PeerEventType.Disconnected, () => {
-      console.log("On disconnected event");
-
-      this.status =
-        "Connection to " +
-        this.connectionToRemotePeers!.peer +
-        " lost. Please reconnect";
+      this.status = "Connected to: " + connection.peer;
       console.log(this.status);
 
-      if (this.lastPeerId) {
-        console.log("Try to reconnect  to: " + this.lastPeerId);
-        this.peer.reconnect();
-      }
+      connection.on(ConnectionEventType.Data, (data) => {
+        console.log("Data recieved: ", data);
+        this.chatList.push({ name: connection.peer, message: data });
+      });
+      connection.on(ConnectionEventType.Close, () => {
+        this.status = "Connection reset: " + connection.peer;
+        this.removeConnection(connection.peer);
+      });
+      // }
     });
+
+    this.peer.on(PeerEventType.Disconnected, (id: string) => {
+      console.log("On disconnected event");
+
+      this.status = "Disconnected with Server";
+      console.log(this.status);
+    });
+
     this.peer.on(PeerEventType.Close, () => {
       console.log("On close event");
-
-      this.connectionToRemotePeers = undefined;
+      this.allConnections.forEach(
+        (connection: DataConnection, connectionId) => {
+          connection.close();
+        }
+      );
+      // this.connectionToRemotePeers = undefined;
       this.status = "Connection destroyed. Please refresh";
       console.log("Connection destroyed");
     });
+
     this.peer.on(PeerEventType.Error, (err: Error) => {
       console.log("On error event");
       console.log(err);
       // alert("" + err);
     });
   }
-  beforeMount() {}
+  private allConnections = new Map();
+  appendNewConnection(connection: DataConnection): void {
+    this.allConnections.set(connection.peer, connection);
+  }
+  removeConnection(connectionID: string): void {
+    this.allConnections.delete(connectionID);
+  }
+  beforeMount() {
+    this.startPeerjs();
+  }
 
   SubmitMessage() {
-    if (this.connectionToRemotePeers && this.connectionToRemotePeers.open) {
-      let inputText = this.currentinput;
-      this.currentinput = "";
-      this.connectionToRemotePeers.send(inputText);
-      console.log("Sent: " + inputText);
-      this.chatList.push({ name: "ME", message: inputText });
-    } else {
-      console.log("Connection is closed");
-    }
+    console.log("Enter SubmitMessage");
+    console.log("SubmitMessage - allConnections: ", this.allConnections);
+    let inputText = this.currentinput;
+    this.currentinput = "";
+    this.chatList.push({ name: "ME", message: inputText });
+    this.allConnections.forEach((connection: DataConnection, connectionID) => {
+      if (!(connection && connection.open)) {
+        this.removeConnection(connection.peer);
+        return;
+      }
+      connection.send(inputText);
+      console.log("Sent To: " + connection.peer + " , Message: " + inputText);
+    });
   }
 
-  DoConnect() {
-    if (this.connectionToRemotePeers) {
-      this.connectionToRemotePeers.close();
-    }
-    console.log("connectTarget: " + this.connectTarget);
-    this.connectionToRemotePeers = this.peer.connect(this.connectTarget, {
+  async DoConnect() {
+    let targetID = this.connectTarget;
+    this.connectTarget = "";
+    console.log("Try to connect to: " + targetID);
+    let conn = this.peer.connect(targetID, {
       reliable: true,
     });
-    let conn = this.connectionToRemotePeers as DataConnection;
-
-    conn.on(ConnectionEventType.Open, () => {
-      this.status = "Connected to: " + conn.peer;
-      console.log("Connected to: " + conn.peer);
+    if (conn === undefined) {
+      return;
+    }
+    let newConnection = conn as DataConnection;
+    this.appendNewConnection(newConnection);
+    newConnection.on(ConnectionEventType.Open, () => {
+      this.status = "Connected to: " + newConnection.peer;
+      console.log(this.status);
     });
-    conn.on(ConnectionEventType.Data, (data) => {
-      this.chatList.push({ name: "Remote", message: data });
+    newConnection.on(ConnectionEventType.Data, (data: string) => {
+      this.chatList.push({ name: newConnection.peer, message: data });
     });
-    conn.on(ConnectionEventType.Close, () => {
-      this.status = "Connection closed";
-    });
-  }
-  private readyToReceiveMessage() {
-    this.connectionToRemotePeers!.on(ConnectionEventType.Data, (data) => {
-      console.log("Data recieved: ", data);
-      // var cueString = '<span class="cueMsg">Cue: </span>';
-      this.chatList.push({ name: "REMOTE", message: data });
-    });
-    this.connectionToRemotePeers!.on(ConnectionEventType.Close, () => {
-      this.status = "Connection reset<br>Awaiting connection...";
-      this.connectionToRemotePeers = undefined;
+    newConnection.on(ConnectionEventType.Close, () => {
+      this.status = "Connection closed: " + newConnection.peer;
     });
   }
 }
@@ -184,7 +188,11 @@ export default class RealTimeChatBox extends Vue {
 .chating_box > * {
   width: 100%;
 }
-.connectionBox {
+.status_box {
+  border: 1px solid;
+  margin-bottom: 5px;
+}
+.connection_box {
   border: 1px solid;
   margin-bottom: 5px;
 }

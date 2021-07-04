@@ -1,7 +1,6 @@
 package websocket_server
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"log"
@@ -45,7 +44,7 @@ func (w *WebsocketServer) peerIDGetter(c *gin.Context) {
 //}
 
 func (w *WebsocketServer) peerHandler(ctx *gin.Context) () {
-	fmt.Println("Enter peerHandler")
+	//fmt.Println("Enter peerHandler")
 	peerHandler := PeerHandler{}
 	urlQuery := ctx.Request.URL.Query()
 	token, ok := urlQuery["token"]

@@ -91,18 +91,24 @@ func (h *PeerHandler) OpenConnection(writer http.ResponseWriter, request *http.R
 	h.heartbeatTicker = time.NewTimer(h.HeartbeatTimeout)
 	go func() {
 		for {
-			<-h.heartbeatTicker.C
-			if (time.Now().Unix() - h.lastHeartbeat.Unix()) < int64(h.HeartbeatTimeout) {
-				h.heartbeatTicker = time.NewTimer(h.HeartbeatTimeout)
-				continue
-			} else {
-				fmt.Println("heartbeatTicker Timeout.")
-				err1 := h.Close()
-				if err1 != nil {
-					fmt.Println("PeerHandler - heartbeatTicker Error when closing PeerHandler")
-				}
+			select{
+			case <-h.connectionCloseChannel:
+				fmt.Println("Canceled to run heartbeatTicker")
 				return
+			case <-h.heartbeatTicker.C:
+				if (time.Now().Unix() - h.lastHeartbeat.Unix()) < int64(h.HeartbeatTimeout) {
+					h.heartbeatTicker = time.NewTimer(h.HeartbeatTimeout)
+					continue
+				} else {
+					fmt.Println("heartbeatTicker Timeout.")
+					err1 := h.CloseHandler()
+					if err1 != nil {
+						fmt.Println("PeerHandler - heartbeatTicker Error when closing PeerHandler")
+					}
+					return
+				}
 			}
+
 
 		}
 
@@ -127,6 +133,11 @@ func (h *PeerHandler) messageReader() {
 		if err != nil {
 			if err == ConnectionClosedError {
 				fmt.Println("Connection closed stop to read new message ")
+				err1 :=h.CloseHandler()
+				if err1 != nil {
+					fmt.Println("PeerHandler - messageReader Error when closing : ", err)
+
+				}
 			} else {
 				// 這裡有BUG，會讀出nil
 				fmt.Printf("PeerHandler - Error when readNewMessage: %+v", err)
@@ -183,7 +194,6 @@ func (h *PeerHandler) messageReader() {
 //	CloseTLSHandshake            = 1015
 //)
 
-
 type WebsocketRawMessage struct {
 	MessageReader io.Reader
 	Type          int
@@ -196,7 +206,7 @@ func (h *PeerHandler) readNewMessage() (*WebsocketRawMessage, error) {
 	h.remotePeerConnectionLock.RUnlock()
 	if err != nil {
 		if e, ok := err.(*websocket.CloseError); ok {
-			err := h.Close()
+			err := h.CloseHandler()
 			if err != nil {
 				fmt.Println("PeerHandler - readNewMessage - CloseGoingAway Error when closing PeerHandler")
 			}
@@ -214,6 +224,7 @@ func (h *PeerHandler) readNewMessage() (*WebsocketRawMessage, error) {
 
 // Forward the information to the destination
 func (h *PeerHandler) forwardToDst(messageReceived *PeerJsTextMessage) (*PeerHandler, error) {
+	//pretty.Println("forwardToDst: ",*messageReceived)
 	peerHandlerID := messageReceived.Dst
 	remotePeerHandler, exist := h.GetPeerHandler(peerHandlerID)
 	if !exist {
@@ -237,7 +248,7 @@ func (h *PeerHandler) textMessageAnalyzer(messageRecieved *PeerJsTextMessage) {
 	messageType := messageRecieved.Type
 	switch messageType {
 	case OFFER:
-		fmt.Println("OFFER EVENT")
+		//fmt.Println("OFFER EVENT")
 		h.offerMessageProcessor(messageRecieved)
 	case OPEN:
 		fmt.Println("OPEN EVENT")
@@ -246,10 +257,10 @@ func (h *PeerHandler) textMessageAnalyzer(messageRecieved *PeerJsTextMessage) {
 		fmt.Println("LEAVE EVENT")
 		h.leaveMessageProcessor(messageRecieved)
 	case CANDIDATE:
-		fmt.Println("CANDIDATE EVENT")
+		//fmt.Println("CANDIDATE EVENT")
 		h.candidateMessageProcessor(messageRecieved)
 	case ANSWER:
-		fmt.Println("ANSWER EVENT")
+		//fmt.Println("ANSWER EVENT")
 		h.answerMessageProcessor(messageRecieved)
 	case EXPIRE:
 		fmt.Println("EXPIRE EVENT")
@@ -273,11 +284,10 @@ func (h *PeerHandler) textMessageAnalyzer(messageRecieved *PeerJsTextMessage) {
 	}
 }
 
-
 // Parse the url query and save it, throwing an error if the query format is not correct.
 func (h *PeerHandler) ParseQuery(urlQuery url.Values) error {
-	// wss://peerjs.localhost/peerjs?key=peerjs&id=002face5-1950-4b63-8dcc-80718e782e00&token=mwcd6cry63p
 
+	// wss://peerjs.localhost/peerjs?key=peerjs&id=002face5-1950-4b63-8dcc-80718e782e00&token=mwcd6cry63p
 	key, ok := urlQuery["key"]
 	if !ok || len(key) != 1 {
 		return errors.New("URL Query 'key' not exist or not only 1")
@@ -294,10 +304,11 @@ func (h *PeerHandler) ParseQuery(urlQuery url.Values) error {
 	h.key = key[0]
 	h.Id = id[0]
 	h.token = token[0]
+	h.remotePeerConnectionLock = sync.RWMutex{}
 	return nil
 }
 
-const DEFULT_HEARTBEAT_TIMEOUT = time.Minute
+const DEFULT_HEARTBEAT_TIMEOUT = time.Second * 15
 
 func (h *PeerHandler) ResetLastHeartbeat(now time.Time) {
 	h.lastHeartbeat = now
@@ -324,8 +335,8 @@ func (h *PeerHandler) SentTo(remotePeerHandler *PeerHandler, message *PeerJsText
 }
 
 // close it.
-func (h *PeerHandler) Close() error {
-	fmt.Println("PeerHandler - Close")
+func (h *PeerHandler) CloseHandler() error {
+	fmt.Println("PeerHandler - CloseHandler")
 	// Refuse new input
 	close(h.connectionCloseChannel)
 	h.remotePeerConnectionLock.Lock()
@@ -341,7 +352,7 @@ func (h *PeerHandler) Close() error {
 		Src:     "",
 	}
 	err = h.BroadcastToAllConnected(leaveMessage)
-	if  err != nil {
+	if err != nil {
 		return err
 	}
 	h.RemovePeerHandler(h.Id)
@@ -362,11 +373,14 @@ func (h *PeerHandler) textMessageHandler() {
 
 var allPeerHandlers = make(map[string]*PeerHandler)
 
+// append the handler
 func (h PeerHandler) AddPeerHandler(handler *PeerHandler) {
 	allPeerHandlers[handler.Id] = handler
 }
 
 func (h PeerHandler) GetPeerHandler(id string) (*PeerHandler, bool) {
+	//fmt.Println("-- id: ",id)
+	//fmt.Println("-- allPeerHandlers: ",allPeerHandlers)
 	handler, exist := allPeerHandlers[id]
 	return handler, exist
 }
@@ -374,7 +388,6 @@ func (h PeerHandler) GetPeerHandler(id string) (*PeerHandler, bool) {
 func (h *PeerHandler) RemovePeerHandler(id string) {
 	delete(allPeerHandlers, id)
 }
-
 
 func (h *PeerHandler) WriteJsonToClient(message PeerJsTextMessage) error {
 	h.remotePeerConnectionLock.Lock()
@@ -385,7 +398,6 @@ func (h *PeerHandler) WriteJsonToClient(message PeerJsTextMessage) error {
 	}
 	return nil
 }
-
 
 func (h *PeerHandler) offerMessageProcessor(messageRecieved *PeerJsTextMessage) {
 	remotePeerHandler, err := h.forwardToDst(messageRecieved)
@@ -452,62 +464,83 @@ func (h *PeerHandler) openMessageProcessor(messageRecieved *PeerJsTextMessage) {
 
 }
 
-var connectionPair = make(map[*PeerHandler][]*PeerHandler)
-func (PeerHandler) RegisterConnection(fromHandler *PeerHandler, toHandler *PeerHandler){
-	setToConnectionPair := func(from *PeerHandler, to *PeerHandler){
-		connectionList, exist := connectionPair[from]
-		if !exist{
-			connectionPair[from] = []*PeerHandler{to}
-		}
-		connectionPair[from] = append(connectionList, to)
-	}
-	setToConnectionPair(fromHandler,toHandler)
-	setToConnectionPair(toHandler,fromHandler)
+//make(map[*PeerHandler][]*PeerHandler)
+var _connectionPair = sync.Map{}
+
+func storeConnection(key *PeerHandler, value []*PeerHandler) {
+	_connectionPair.Store(key, value)
 }
+func loadConnection(key *PeerHandler) ([]*PeerHandler, bool) {
+	connectionList, exist := _connectionPair.Load(key)
+	if exist {
+		return connectionList.([]*PeerHandler), exist
+	}
+	return nil, false
+}
+func deleteConnection(key *PeerHandler) {
+	_connectionPair.Delete(key)
+}
+
+// Register a new connection between two Handlers
+func (*PeerHandler) RegisterConnection(fromHandler *PeerHandler, toHandler *PeerHandler) {
+	setToConnectionPair := func(from *PeerHandler, to *PeerHandler) {
+		connectionList, exist := loadConnection(from)
+		if !exist {
+			storeConnection(from, []*PeerHandler{to})
+		}
+		storeConnection(from, append(connectionList, to))
+	}
+	setToConnectionPair(fromHandler, toHandler)
+	setToConnectionPair(toHandler, fromHandler)
+}
+
 func removeSliceItemAtIndex(s []interface{}, i int) []interface{} {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 }
-func removeSliceItem(s interface{}, i interface{})( interface{},bool ){
+
+func removeSliceItem(s interface{}, i interface{}) (interface{}, bool) {
 	slice := s.([]interface{})
 	for i2, i3 := range slice {
-		if i3 == i{
-			return removeSliceItemAtIndex(slice,i2),true
+		if i3 == i {
+			return removeSliceItemAtIndex(slice, i2), true
 		}
 	}
-	return s,false
+	return s, false
 }
-func (PeerHandler) RemoveConnection(fromHandler *PeerHandler, toHandler *PeerHandler) error{
-	removeFromConnectionPair := func(from *PeerHandler, to *PeerHandler) error{
-		connectionList, exist := connectionPair[from]
-		if !exist{
+
+// Remove specific connection between two Handlers
+func (*PeerHandler) RemoveConnection(fromHandler *PeerHandler, toHandler *PeerHandler) error {
+	removeFromConnectionPair := func(from *PeerHandler, to *PeerHandler) error {
+		connectionList, exist := loadConnection(from)
+		if !exist {
 			return nil
 		}
-		if len(connectionList) ==0{
-			delete(connectionPair,from)
-		}else{
+		if len(connectionList) == 0 {
+			deleteConnection(from)
+		} else {
 		}
-		list,ok:=removeSliceItem(connectionList,to)
+		list, ok := removeSliceItem(connectionList, to)
 		if ok {
-			return errors.New("the target Handler is not registered connection with this Handler")
+			return errors.New("the 'from Handler' is not registered connection with 'to Handler'")
 		}
-		connectionPair[from] =list.([]*PeerHandler)
+		storeConnection(from, list.([]*PeerHandler))
 		return nil
 	}
-	err := removeFromConnectionPair(fromHandler,toHandler)
+	err := removeFromConnectionPair(fromHandler, toHandler)
 	if err != nil {
 		return err
 	}
-	err = removeFromConnectionPair(toHandler,fromHandler)
+	err = removeFromConnectionPair(toHandler, fromHandler)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-
-func (h *PeerHandler) BroadcastToAllConnected(message *PeerJsTextMessage)error {
-	allConnections,err := h.GetAllConnection()
+// Broadcast text message to all connected PeerHandler
+func (h *PeerHandler) BroadcastToAllConnected(message *PeerJsTextMessage) error {
+	allConnections, err := h.GetAllConnection()
 	if err != nil {
 		return err
 	}
@@ -518,11 +551,11 @@ func (h *PeerHandler) BroadcastToAllConnected(message *PeerJsTextMessage)error {
 	return nil
 }
 
-func (h *PeerHandler) GetAllConnection() ([]*PeerHandler ,error){
-	allConnections ,exist :=connectionPair[h]
-	if !exist{
+// Get all connected PeerHandler
+func (h *PeerHandler) GetAllConnection() ([]*PeerHandler, error) {
+	allConnections, exist := loadConnection(h)
+	if !exist {
 		return nil, errors.New("no connections was made")
 	}
-	return allConnections,nil
+	return allConnections, nil
 }
-

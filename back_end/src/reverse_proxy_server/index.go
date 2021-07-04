@@ -139,8 +139,8 @@ func (s *ReverseProxyServer) distributor (c *gin.Context) {
 		}
 	proxy.ModifyResponse = func(response *http.Response) error {
 		response.Header.Del(util.IDENTIFICATION_SYMBOL_KEY)
-		fmt.Println("After RoundTrip")
-		fmt.Println("resp.StatusCode",response.StatusCode)
+		//fmt.Println("After RoundTrip")
+		//fmt.Println("resp.StatusCode",response.StatusCode)
 
 		return nil
 	}
@@ -175,7 +175,7 @@ func (s *ReverseProxyServer) distributor (c *gin.Context) {
 	//	c.AbortWithStatus(resp.StatusCode)
 	//	return
 	//}
-	//defer resp.Body.Close()
+	//defer resp.Body.CloseHandler()
 	//i, err := bufio.NewReader(resp.Body).WriteTo(c.Writer)
 	//if err != nil {
 	//	if err == http.ErrBodyNotAllowed{

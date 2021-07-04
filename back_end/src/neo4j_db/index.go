@@ -35,7 +35,7 @@ func GetDriver() neo4j.Driver {
 
 func RunInNewSession(f func(tx neo4j.Transaction) (interface{}, error)) (interface{}, error) {
 	// Sessions are short-lived, cheap to create and NOT thread safe. Typically create one or more sessions
-	// per request in your web application. Make sure to call Close on the session when done.
+	// per request in your web application. Make sure to call CloseHandler on the session when done.
 	// For multi-database support, set sessionConfig.DatabaseName to requested database
 	// Session config will default to write mode, if only reads are to be used configure session for
 	// read mode.
