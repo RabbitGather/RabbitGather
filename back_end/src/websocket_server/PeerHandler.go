@@ -206,10 +206,6 @@ func (h *PeerHandler) readNewMessage() (*WebsocketRawMessage, error) {
 	h.remotePeerConnectionLock.RUnlock()
 	if err != nil {
 		if e, ok := err.(*websocket.CloseError); ok {
-			err := h.CloseHandler()
-			if err != nil {
-				fmt.Println("PeerHandler - readNewMessage - CloseGoingAway Error when closing PeerHandler")
-			}
 			return nil, ConnectionClosedError
 		} else {
 			return nil, e

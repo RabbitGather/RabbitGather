@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -88,8 +89,16 @@ func (w *WebServer) shutdown() {
 }
 
 func (w *WebServer) MountService(ctx context.Context) {
-	w.ginEngine.Static("/","public/web/")
+	//w.ginEngine.Static("/","public/web/")
+	w.ginEngine.Use(static.Serve("/", static.LocalFile("public/web/", false)))
+	w.ginEngine.LoadHTMLFiles("public/web/index.html")
 
+	w.ginEngine.NoRoute(func(c *gin.Context) {
+		//t, _ := template.ParseFiles("public/web/index.html")
+		c.HTML(http.StatusOK,"index.html" ,gin.H{
+			"title": "Main website",
+		})
+	})
 }
 
 //func (w *WebServer)  indexHandler(c *gin.Context)() {

@@ -9,6 +9,8 @@ import { SocketEventType, ServerMessageType } from "./enums";
 export class Socket extends EventEmitter {
   private _disconnected: boolean = true;
   private _id?: string;
+  /* eslint-disable  @typescript-eslint/ban-types */
+
   private _messagesQueue: Array<object> = [];
   private _socket?: WebSocket;
   private _wsPingTimer?: any;
@@ -20,7 +22,7 @@ export class Socket extends EventEmitter {
     port: number,
     path: string,
     key: string,
-    private readonly pingInterval: number = 5000,
+    private readonly pingInterval: number = 5000
   ) {
     super();
 
@@ -158,7 +160,10 @@ export class Socket extends EventEmitter {
 
   private _cleanup(): void {
     if (this._socket) {
-      this._socket.onopen = this._socket.onmessage = this._socket.onclose = null;
+      this._socket.onopen =
+        this._socket.onmessage =
+        this._socket.onclose =
+          null;
       this._socket.close();
       this._socket = undefined;
     }

@@ -1,25 +1,49 @@
 <template>
-  <div class="ChatingBox">
-    <h1>Real Time Chating Box</h1>
-    <div class="connection_box">
-      <h2>Connect To :</h2>
-      <input type="text" v-model="connectTarget" />
-      <button @click="DoConnect">Connect</button>
-    </div>
+  <div class="flex flex-row justify-center">
+    <div class="ChatingBox w-3/4 children:bg-gray text-center">
+      <h1 class="text-4xl">Real Time Chating Box</h1>
+      <div class="border-2 border-black">
+        <h2>Connection ID:</h2>
+        <p v-show="myPeerID !== ''">
+          {{ myPeerID }}
+        </p>
+      </div>
+      <div class="border-black border-2">
+        <h2 class="text-2xl">Connect To :</h2>
+        <input
+          type="text"
+          v-model="connectTarget"
+          class="border-2 border-black"
+        />
+        <button @click="DoConnect" class="ml-2 border-2 border-black">
+          Connect
+        </button>
+      </div>
 
-    <div class="status_box">
-      <h2>Status:</h2>
-      <p>{{ status }}</p>
-      <h2>Connection ID:</h2>
-      <p v-show="myPeerID !== ''">
-        {{ myPeerID }}
-      </p>
-    </div>
-    <input v-model="currentinput" class="messageInput" type="text" />
-    <button @click="SubmitMessage">Submit</button>
-    <h2>ChatRoom :</h2>
-    <div class="chatList" v-for="(item, index) in chatList" :key="index">
-      {{ index }} - {{ item.name }} : {{ item.message }}
+      <div class="border-black border-2">
+        <h2>Status:</h2>
+        <p>{{ status }}</p>
+      </div>
+      <div>
+        <input
+          v-model="currentinput"
+          class="border-black border-2"
+          type="text"
+        />
+        <button @click="SubmitMessage" class="ml-2 border-2 border-black">
+          Sent
+        </button>
+      </div>
+      <div class="border-2 border-black">
+        <h2 class="text-2xl border-b-2 border-black">ChatRoom :</h2>
+        <div
+          class="chatList text-left"
+          v-for="(item, index) in chatList"
+          :key="index"
+        >
+          {{ index }} - {{ item.name }} : {{ item.message }}
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -31,25 +55,43 @@ import { PeerEventType, ConnectionEventType } from "../lib/peerjs/lib/enums";
 import { Options, Vue } from "vue-class-component";
 import RTCconnectionToRemotePeersConfiguration from "@/config/RTCPeerConnectionConfiguration";
 import { useStore, AllMutationTypes } from "@/store";
-
-@Options({
-  components: {
-    // SendArticleWithPositioning,
-    // PerChat,
-  },
-})
+import peerjsConfig from "../config/peerjs_config";
+// import * as fs from "fs";
+/* eslint-disable @typescript-eslint/no-var-requires */
+// import fs from "fs";
+// let a = file.readFileSync("../config/peerjs.config.json", "utf8");
+// console.log(a);
+// @Options({
+//   components: {
+//     // SendArticleWithPositioning,
+//     // PerChat,
+//   },
+// })
 export default class RealTimeChatBox extends Vue {
   nickname = "";
   status = "Initializing ...";
   currentinput = "";
   myPeerID = "(Not generated yet ...)";
-  chatList = [{ name: "OK", message: "MESSAGE" }];
+  chatList = [{ name: "SYSTEM", message: "DEBUG_MESSAGE" }];
   connectTarget = "";
   private peer!: Peer;
 
   startPeerjs() {
+    console.log(peerjsConfig.RunningHost);
+
     let vueStore = useStore();
     let apiToken = vueStore.state.AUTH.API_ACCESS_TOKEN as string;
+    // /* eslint-disable @typescript-eslint/no-var-requires */
+    // let fs = require("fs");
+
+    // fs.readFile(
+    //   "../config/peerjs.config.json",
+    //   function (err: Error, data: string) {
+    //     if (err) throw err;
+
+    //     console.log(data.toString());
+    //   }
+    // );
     this.peer = new Peer(undefined, {
       host: "peerjs.localhost",
       port: 443,
@@ -177,7 +219,12 @@ export default class RealTimeChatBox extends Vue {
 </script>
 
 <style scope>
-.chating_box {
+.ChatingBox > * {
+  float: left;
+  width: 100%;
+  display: block;
+}
+/* .chating_box {
   flex-direction: column;
   height: 100vh;
   align-items: center;
@@ -206,5 +253,5 @@ export default class RealTimeChatBox extends Vue {
   margin-top: 5px;
   border: 1px solid;
   margin: auto;
-}
+} */
 </style>
