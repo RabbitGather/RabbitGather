@@ -81,19 +81,8 @@ export default class RealTimeChatBox extends Vue {
 
     let vueStore = useStore();
     let apiToken = vueStore.state.AUTH.API_ACCESS_TOKEN as string;
-    // /* eslint-disable @typescript-eslint/no-var-requires */
-    // let fs = require("fs");
-
-    // fs.readFile(
-    //   "../config/peerjs.config.json",
-    //   function (err: Error, data: string) {
-    //     if (err) throw err;
-
-    //     console.log(data.toString());
-    //   }
-    // );
     this.peer = new Peer(undefined, {
-      host: "peerjs.localhost",
+      host: "peerjs." + peerjsConfig.RunningHost,
       port: 443,
       path: "/",
       key: "peerjs",
@@ -113,7 +102,13 @@ export default class RealTimeChatBox extends Vue {
       this.myPeerID = peerID;
       this.status = "Awaiting connection...";
     });
+    this.peer.on(PeerEventType.Error, (err) => {
+      console.log("On Error event");
 
+      console.log("Error : " + err);
+      this.status = err;
+      // this.status = "Awaiting connection...";
+    });
     // Connection from others
     this.peer.on(PeerEventType.Connection, (connection: DataConnection) => {
       console.log("On connection event");
@@ -200,6 +195,8 @@ export default class RealTimeChatBox extends Vue {
       reliable: true,
     });
     if (conn === undefined) {
+      this.status = "Fail to connect to: " + targetID;
+      console.log(this.status);
       return;
     }
     let newConnection = conn as DataConnection;

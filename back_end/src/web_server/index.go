@@ -35,7 +35,7 @@ func init() {
 		panic(err.Error())
 	}
 	ServePath, err = url.Parse(config.ServePath)
-	log.Println("APIServer - ServePath : ",ServePath)
+	log.Println("WebServer - ServePath : ",ServePath)
 	if err != nil {
 		panic(err.Error())
 	}

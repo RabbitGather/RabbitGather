@@ -78,3 +78,9 @@ let sss = {
   },
   dst: "",
 };
+
+let EXPIRE = {
+  type: "EXPIRE",
+  src: "9999999",
+  dst: "08cb419b-a987-41be-ba66-44c42f9c170a",
+};

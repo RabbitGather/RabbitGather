@@ -1,6 +1,7 @@
 package websocket_server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -59,17 +60,19 @@ type PeerJsTextMessage struct {
 }
 
 type PeerHandler struct {
+	isOpen                     bool
 	newTextMessageInputChannel chan *PeerJsTextMessage
-	connectionCloseChannel     chan struct{}
+	handlerCloseContextCancel  context.CancelFunc
 	remotePeerConnectionLock   sync.RWMutex
 	websocketConnection        *websocket.Conn
 	key                        string
 	token                      string
 	// the serving client ID
-	Id               string
-	lastHeartbeat    time.Time
-	HeartbeatTimeout time.Duration
-	heartbeatTicker  *time.Timer
+	Id                 string
+	lastHeartbeat      time.Time
+	HeartbeatTimeout   time.Duration
+	heartbeatTicker    *time.Timer
+	handlerCloseContex context.Context
 }
 
 // Open a websocket connection with a client.
@@ -82,37 +85,8 @@ func (h *PeerHandler) OpenConnection(writer http.ResponseWriter, request *http.R
 	h.AddPeerHandler(h)
 	err = h.WriteJsonToClient(PeerJsTextMessage{Type: OPEN})
 	if err != nil {
-		fmt.Println("WebsocketServer - Serve default - default : WriteJSON error")
+		return err
 	}
-
-	if h.HeartbeatTimeout == 0 {
-		h.HeartbeatTimeout = DEFULT_HEARTBEAT_TIMEOUT
-	}
-	h.heartbeatTicker = time.NewTimer(h.HeartbeatTimeout)
-	go func() {
-		for {
-			select{
-			case <-h.connectionCloseChannel:
-				fmt.Println("Canceled to run heartbeatTicker")
-				return
-			case <-h.heartbeatTicker.C:
-				if (time.Now().Unix() - h.lastHeartbeat.Unix()) < int64(h.HeartbeatTimeout) {
-					h.heartbeatTicker = time.NewTimer(h.HeartbeatTimeout)
-					continue
-				} else {
-					fmt.Println("heartbeatTicker Timeout.")
-					err1 := h.CloseHandler()
-					if err1 != nil {
-						fmt.Println("PeerHandler - heartbeatTicker Error when closing PeerHandler")
-					}
-					return
-				}
-			}
-
-
-		}
-
-	}()
 	return nil
 }
 
@@ -121,8 +95,14 @@ var ConnectionClosedError = errors.New("the websocket connection is already clos
 // listening new message from websocket connection and make reaction.
 func (h *PeerHandler) Serve() {
 	h.newTextMessageInputChannel = make(chan *PeerJsTextMessage, 1)
-	h.connectionCloseChannel = make(chan struct{})
+	h.handlerCloseContex, h.handlerCloseContextCancel = context.WithCancel(context.Background())
+	h.isOpen = true
+	if h.HeartbeatTimeout == 0 {
+		h.HeartbeatTimeout = DEFULT_HEARTBEAT_TIMEOUT
+	}
+	h.heartbeatTicker = time.NewTimer(h.HeartbeatTimeout)
 	go h.messageReader()
+	go h.heartBeatTerminator()
 	go h.textMessageHandler()
 }
 
@@ -133,10 +113,9 @@ func (h *PeerHandler) messageReader() {
 		if err != nil {
 			if err == ConnectionClosedError {
 				fmt.Println("Connection closed stop to read new message ")
-				err1 :=h.CloseHandler()
+				err1 := h.CloseHandler()
 				if err1 != nil {
 					fmt.Println("PeerHandler - messageReader Error when closing : ", err)
-
 				}
 			} else {
 				// 這裡有BUG，會讀出nil
@@ -224,11 +203,7 @@ func (h *PeerHandler) forwardToDst(messageReceived *PeerJsTextMessage) (*PeerHan
 	peerHandlerID := messageReceived.Dst
 	remotePeerHandler, exist := h.GetPeerHandler(peerHandlerID)
 	if !exist {
-		errorMessage := fmt.Sprintf("Error : Destination Peer ID %s Not Exist.", peerHandlerID)
-		err := h.WriteJsonToClient(PeerJsTextMessage{Type: ERROR, Payload: errorMessage})
-		if err != nil {
-			return nil, err
-		}
+
 		return nil, SentToTargetNotFound
 	}
 
@@ -332,9 +307,14 @@ func (h *PeerHandler) SentTo(remotePeerHandler *PeerHandler, message *PeerJsText
 
 // close it.
 func (h *PeerHandler) CloseHandler() error {
+	if !h.isOpen {
+		return nil
+	}
 	fmt.Println("PeerHandler - CloseHandler")
 	// Refuse new input
-	close(h.connectionCloseChannel)
+	h.handlerCloseContextCancel()
+	h.isOpen = false
+
 	h.remotePeerConnectionLock.Lock()
 	err := h.websocketConnection.Close()
 	h.remotePeerConnectionLock.Unlock()
@@ -361,7 +341,7 @@ func (h *PeerHandler) textMessageHandler() {
 		select {
 		case msg := <-h.newTextMessageInputChannel:
 			go h.textMessageAnalyzer(msg)
-		case <-h.connectionCloseChannel:
+		case <-h.handlerCloseContex.Done():
 			return
 		}
 	}
@@ -398,6 +378,13 @@ func (h *PeerHandler) WriteJsonToClient(message PeerJsTextMessage) error {
 func (h *PeerHandler) offerMessageProcessor(messageRecieved *PeerJsTextMessage) {
 	remotePeerHandler, err := h.forwardToDst(messageRecieved)
 	if err != nil {
+		if err == SentToTargetNotFound {
+			errorMessage := fmt.Sprintf("Error : Destination Peer ID %s Not Exist.", messageRecieved.Dst)
+			err := h.WriteJsonToClient(PeerJsTextMessage{Type: EXPIRE,Payload: errorMessage, Src:messageRecieved.Dst,Dst: messageRecieved.Src})
+			if err != nil {
+				fmt.Println("PeerHandler - offerMessageProcessor - WriteJsonToClient Error: ", err.Error())
+			}
+		}
 		fmt.Println("PeerHandler - offerMessageProcessor Error: ", err.Error())
 		return
 	}
@@ -554,4 +541,28 @@ func (h *PeerHandler) GetAllConnection() ([]*PeerHandler, error) {
 		return nil, errors.New("no connections was made")
 	}
 	return allConnections, nil
+}
+
+func (h *PeerHandler) heartBeatTerminator() {
+	for {
+		select {
+		case <-h.handlerCloseContex.Done():
+			fmt.Println("Canceled to run heartbeatTicker")
+			return
+		case <-h.heartbeatTicker.C:
+			if (time.Now().Unix() - h.lastHeartbeat.Unix()) < int64(h.HeartbeatTimeout) {
+				h.heartbeatTicker = time.NewTimer(h.HeartbeatTimeout)
+				continue
+			} else {
+				fmt.Println("heartbeatTicker Timeout.")
+				err1 := h.CloseHandler()
+				if err1 != nil {
+					fmt.Println("PeerHandler - heartbeatTicker Error when closing PeerHandler")
+				}
+				return
+			}
+		}
+
+	}
+
 }

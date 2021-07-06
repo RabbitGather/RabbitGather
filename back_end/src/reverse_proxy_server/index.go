@@ -35,9 +35,9 @@ func init() {
 		KEY_FILE string
 		ServePath string
 		MEOWALIEN_COM_CRT string
-		SectigoRSADomainValidationSecureServerCA string
-		USERTrustRSAAddTrustCA string
-		AddTrustExternalCARoot string
+		//SectigoRSADomainValidationSecureServerCA string
+		//USERTrustRSAAddTrustCA string
+		//AddTrustExternalCARoot string
 		RedirectAddrMap map[string]string
 
 	}
@@ -49,9 +49,9 @@ func init() {
 
 	SSLCertificationsCrts = []string{
 		config.MEOWALIEN_COM_CRT,
-		config.SectigoRSADomainValidationSecureServerCA,
-		config.USERTrustRSAAddTrustCA,
-		config.AddTrustExternalCARoot,
+		//config.SectigoRSADomainValidationSecureServerCA,
+		//config.USERTrustRSAAddTrustCA,
+		//config.AddTrustExternalCARoot,
 	}
 	ServePath , err = url.Parse(config.ServePath)
 	if err!=nil{panic(err.Error())}
@@ -95,7 +95,7 @@ func (r *ReverseProxyServer) Startup(ctx context.Context , shutdownCallback util
 
 	go func() {
 		if err := r.serverInst.ListenAndServeTLS(CERT_FILE, KEY_FILE); err != nil && err != http.ErrServerClosed {
-			log.Printf("ReverseProxyServer Error: %s\n", err.Error())
+			panic("ReverseProxyServer Error: %s\n"+err.Error())
 		}
 	}()
 
