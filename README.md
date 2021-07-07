@@ -24,17 +24,17 @@ https://www.figma.com/file/2RU9Wj1U7LAgoBBEVYrVdR/RabbitGater?node-id=0%3A1
 * [x] 建立伺服器與前端的基礎通訊
 * [x] 使用Neo4j儲存文章與定位資訊
 * [x] p2p瀏覽器伺服器，以及配套後端服務
+* [x] 加入TailwindCss
 * [ ] 修改聊天室為群組聊天室
-* [ ] 優化UI
+* [ ] 建立雷達介面 
+
 * [ ] 建立透過定位搜尋半徑內文章的功能
 * [ ] 增加定位精度
-* [ ] 建立雷達介面 
-* [ ] 加入Github Action
 * [ ] 加入Docker
-* [x] 加入TailwindCss
+* [ ] 加入Kubernetes
 * [ ] 加入Vite
 * [ ] 加入Redis
-
+* [ ] 加入Github Action
 
 
 

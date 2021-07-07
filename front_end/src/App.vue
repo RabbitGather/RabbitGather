@@ -1,11 +1,9 @@
 <template>
-  <!-- <div id="nav"> -->
-  <router-link to="/chat">Chat </router-link>
-  <router-link to="/login">Login </router-link>
-  <router-link to="/"> Home</router-link>
+  <!-- <router-link to="/chat">Chat </router-link> -->
+  <!-- <router-link to="/login">Login </router-link> -->
+  <!-- <router-link to="/"> Home</router-link> -->
 
   <router-view />
-  <!-- </div> -->
 </template>
 
 <style>
@@ -22,7 +20,7 @@ body {
 }
 #app {
   min-height: 100vh;
-  width: 100%;
+  width: 100vw;
   height: 100vh;
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

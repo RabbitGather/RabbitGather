@@ -54,19 +54,9 @@ import { DataConnection } from "../lib/peerjs/lib/dataconnection";
 import { PeerEventType, ConnectionEventType } from "../lib/peerjs/lib/enums";
 import { Options, Vue } from "vue-class-component";
 import RTCconnectionToRemotePeersConfiguration from "@/config/RTCPeerConnectionConfiguration";
-import { useStore, AllMutationTypes } from "@/store";
+import { useStore } from "@/store";
 import peerjsConfig from "../config/peerjs_config";
-// import * as fs from "fs";
-/* eslint-disable @typescript-eslint/no-var-requires */
-// import fs from "fs";
-// let a = file.readFileSync("../config/peerjs.config.json", "utf8");
-// console.log(a);
-// @Options({
-//   components: {
-//     // SendArticleWithPositioning,
-//     // PerChat,
-//   },
-// })
+
 export default class RealTimeChatBox extends Vue {
   nickname = "";
   status = "Initializing ...";
@@ -107,16 +97,14 @@ export default class RealTimeChatBox extends Vue {
 
       console.log("Error : " + err);
       this.status = err;
-      // this.status = "Awaiting connection...";
     });
+
     // Connection from others
     this.peer.on(PeerEventType.Connection, (connection: DataConnection) => {
       console.log("On connection event");
       try {
         this.appendNewConnection(connection);
       } catch (e) {
-        // connection.provider
-        // console.log(connection.provider)
         this.status = "Fail to Connect to:" + connection.peer + "Error :" + e;
         return;
       }
@@ -132,7 +120,6 @@ export default class RealTimeChatBox extends Vue {
         this.status = "Connection reset: " + connection.peer;
         this.removeConnection(connection.peer);
       });
-      // }
     });
 
     this.peer.on(PeerEventType.Disconnected, (id: string) => {
@@ -149,7 +136,6 @@ export default class RealTimeChatBox extends Vue {
           connection.close();
         }
       );
-      // this.connectionToRemotePeers = undefined;
       this.status = "Connection destroyed. Please refresh";
       console.log("Connection destroyed");
     });
@@ -157,7 +143,6 @@ export default class RealTimeChatBox extends Vue {
     this.peer.on(PeerEventType.Error, (err: Error) => {
       console.log("On error event");
       console.log(err);
-      // alert("" + err);
     });
   }
   private allConnections = new Map();
@@ -221,34 +206,4 @@ export default class RealTimeChatBox extends Vue {
   width: 100%;
   display: block;
 }
-/* .chating_box {
-  flex-direction: column;
-  height: 100vh;
-  align-items: center;
-  display: flex;
-  justify-content: center;
-  background: rgb(255, 171, 171);
-}
-.chating_box > * {
-  width: 100%;
-}
-.status_box {
-  border: 1px solid;
-  margin-bottom: 5px;
-}
-.connection_box {
-  border: 1px solid;
-  margin-bottom: 5px;
-}
-.messageInput {
-  width: 50%;
-  margin-right: 3px;
-}
-.chatList {
-  max-width: 750px;
-  width: 100%;
-  margin-top: 5px;
-  border: 1px solid;
-  margin: auto;
-} */
 </style>
