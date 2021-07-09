@@ -90,93 +90,40 @@ let htmlfontsize: number;
 @Options({})
 export default class RadarRadiusRuler extends Vue.with(Props) {
   TenScalePoints: number[][] = [];
-
+  pointValue = 0;
   beforeMount() {
-    console.log(this.min);
-    console.log(this.max);
+    // console.log(this.min);
+    // console.log(this.max);
     let tempArray: number[] = [];
     for (let i = this.min; i <= this.max; i++) {
-      // console.log(i);
       if (tempArray.length == 10) {
         this.TenScalePoints.push([...tempArray]);
         tempArray = [];
       } else {
-        // console.log("PUSH");
-
         tempArray.push(i);
-        // console.log(tempArray);
       }
     }
     this.TenScalePoints.push(tempArray);
-    // console.log(this.TenScalePoints);
   }
   mounted() {
-    // scrollbox.offsetLeft
     htmlfontsize = parseInt(
       getComputedStyle(document.getElementsByTagName("html")[0], null).fontSize
     );
-    this.scrollboxOffsetWidth = (
-      this.$refs.scrollbox as HTMLDivElement
-    ).offsetWidth;
   }
-  // scrollboxMouseup() {
-  //   let scrollbox = this.$refs.scrollbox as HTMLDivElement;
-  //   let scrollboxcontainer = this.$refs.scrollboxcontainer as HTMLDivElement;
-  //   console.log(scrollbox.offsetLeft);
-  // }
 
-  private totalMove = 0;
   scrollboxcontainer_dragscrollstart() {}
-  private scrollboxOffsetWidth = -1;
-  scrollboxcontainer_dragscrollmove(deltaX: number) {
-    // console.log(
-    //   "deltaX: " +
-    //     deltaX +
-    //     " scrollboxOffsetWidth: " +
-    //     this.scrollboxOffsetWidth +
-    //     " totalMove: " +
-    //     this.totalMove
-    // );
-    // if (
-    //   (this.totalMove <= 0 && deltaX < 0) ||
-    //   (this.totalMove >= this.scrollboxOffsetWidth && deltaX > 0)
-    // ) {
-    //   return;
-    // }
-    // // let xMove = deltaX * -1;
-    // this.totalMove += deltaX;
-  }
+  scrollboxcontainer_dragscrollmove(deltaX: number) {}
   remToPx(rem: number): number {
     return rem * htmlfontsize;
   }
   scrollboxcontainer_dragscrollend() {
     let scrollboxcontainer = this.$refs.scrollboxcontainer as HTMLDivElement;
-    // console.log(
-    //   "scrollboxcontainer_dragscrollstart scrollbox.scrollLeft: " +
-    //     scrollboxcontainer.scrollLeft
-    // );
-    // let triangle = (this.$refs.triangle as HTMLDivElement).getBoundingClientRect();
     let triangle = this.$refs.triangle as HTMLDivElement;
-    // console.log("triangle.offsetTop: " + triangle.offsetTop);
-    // console.log("window.innerHeight: " + window.innerHeight);
-    // console.log(
-    //   0.36 *
-    //     parseInt(
-    //       getComputedStyle(document.getElementsByTagName("html")[0], null)
-    //         .fontSize
-    //     )
-    // );
-    // console.log("RPM: " + 36 *
-    //       parseInt(
-    //         getComputedStyle(document.getElementsByTagName("html")[0], null)
-    //           .fontSize
-    //       ));
     const targitBar = document.elementsFromPoint(
       triangle.offsetLeft + this.remToPx(0.36),
       window.innerHeight - 5
     )[0] as HTMLDivElement;
 
-    // let targitBarPossition = targitBar.getBoundingClientRect();
     const helfWindow = window.innerWidth / 2;
     let gape =
       (targitBar.offsetLeft == 0 ? helfWindow : targitBar.offsetLeft) +
@@ -186,44 +133,21 @@ export default class RadarRadiusRuler extends Vue.with(Props) {
     scrollboxcontainer.scrollLeft +=
       gape - current + (gapeans ? this.remToPx(0.5) : -1 * this.remToPx(0.5));
 
-    // if (gape > current) {
-    // } else {
-    // }
-
-    // console.log("gape: " + gape);
-    // console.log("current: " + current);
     let theValue =
       parseInt(targitBar.attributes.getNamedItem("value")!.value) +
       (gapeans ? 1 : 0);
-    console.log("theValue: " + theValue);
-
-    // let scrollboxcontainer = this.$refs.scrollboxcontainer as HTMLDivElement;
-    // // let rect = (this.$refs.triangle as HTMLDivElement).getBoundingClientRect();
-    // // console.log(rect.top, rect.right, rect.bottom, rect.left);
-    // // console.log(document.elementFromPoint(rect.left, rect.bottom + 2));
-    // // var parentPos = obj.parent().offset();
-    // console.log("triangle.offsetLeft: " + triangle.offsetLeft);
-    // console.log(
-    //   "scrollboxcontainer.scrollLeft: " + scrollboxcontainer.scrollLeft
-    // );
-
-    // var childOffset = {
-    //   top: triangle.scrollTop - scrollboxcontainer.scrollTop,
-    //   left: triangle.scrollLeft - scrollboxcontainer.scrollLeft,
-    // };
-
-    // console.log(childOffset);
-    // let scrollbox = this.$refs.scrollboxcontainer as HTMLDivElement;
-    // scrollbox.scrollLeft += 20;
+    if (theValue > this.max) {
+      theValue = this.max;
+    }
+    if (this.pointValue != theValue) {
+      this.pointValue = theValue;
+      console.log("PointValue: " + this.pointValue);
+    }
   }
 }
 </script>
 
 <style scoped>
-/* .VerticalLine-short {
-  border-left: 6px solid green;
-  height: 50px;
-} */
 .VerticalLine-short {
   @apply h-3
           border-black

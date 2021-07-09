@@ -35,8 +35,7 @@ https://www.figma.com/file/2RU9Wj1U7LAgoBBEVYrVdR/RabbitGater?node-id=0%3A1
 * [ ] 加入Vite
 * [ ] 加入Redis
 * [ ] 加入Github Action
-
-
+* [ ] 加入line notify
 
 
 
