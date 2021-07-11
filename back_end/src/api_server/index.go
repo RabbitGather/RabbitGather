@@ -99,4 +99,6 @@ func (w *APIServer) MountService(ctx context.Context) {
 	w.ginEngine.Use(cors.New(config))
 	w.ginEngine.POST("/post_article", w.postArticleHandler)
 	w.ginEngine.POST("/login", w.login)
+	w.ginEngine.POST("/search_article", w.searchArticleHandler)
+
 }
