@@ -1,8 +1,6 @@
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
 
 type ABC string
 
@@ -10,26 +8,34 @@ func (a ABC) name() string {
 	return string(a)
 }
 
-const (
-	ValidationErrorMalformed        uint32 = 1 << iota // Token is malformed
-	ValidationErrorUnverifiable                        // Token could not be verified because of signing problems
-	ValidationErrorSignatureInvalid                    // Signature validation failed
+// API list
+type PermissionCode uint32
 
-	// Standard Claim validation errors
-	ValidationErrorAudience      // AUD validation failed
-	ValidationErrorExpired       // EXP validation failed
-	ValidationErrorIssuedAt      // IAT validation failed
-	ValidationErrorIssuer        // ISS validation failed
-	ValidationErrorNotValidYet   // NBF validation failed
-	ValidationErrorId            // JTI validation failed
-	ValidationErrorClaimsInvalid // Generic claims validation error
+// API list
+const (
+	SearchArticle PermissionCode = 1 << iota // Token is malformed
+	PostArticle
+	Login
+	PPP
 )
 
 func main() {
+	userPermission := PostArticle | Login
+	fmt.Println(userPermission)
+	fmt.Println(SearchArticle)
+	fmt.Println(PostArticle)
+	fmt.Println(Login)
+	fmt.Println("----------")
+	fmt.Println(SearchArticle & userPermission)
+	fmt.Println(PostArticle & userPermission)
+	fmt.Println(PPP & userPermission)
+	fmt.Println(Login & userPermission) //0
+	//fmt.Println(Login&userPermission)//0
+
 	//if 1&1{
 	//}
 	//var Errors =  uint32(1)
-	fmt.Println(1 << 0)
+	//fmt.Println(1 << 0)
 	//fmt.Println(jwt.ValidationErrorMalformed )
 	//fmt.Println(Errors)
 	//fmt.Println(Errors&jwt.ValidationErrorMalformed )

@@ -52,10 +52,17 @@ type JWTToken struct {
 	signedString string
 }
 
+func (t *JWTToken) GetSignedString() string {
+	if t.signedString != "" {
+		panic("signedString is empty")
+	}
+	return t.signedString
+}
+
 var JWTTokenSigningMethod = jwt.SigningMethodRS256
 
 // ParseToken Parse the signed token string into claims
-func (t *JWTToken) ParseToken(signedTokenString string, claims jwt.Claims) (*JWTToken, error) {
+func ParseToken(signedTokenString string, claims jwt.Claims) (*JWTToken, error) {
 	token, err := jwt.ParseWithClaims(signedTokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		e := checkTokenWhenParse(token)
 		return publicKey, e
@@ -64,7 +71,29 @@ func (t *JWTToken) ParseToken(signedTokenString string, claims jwt.Claims) (*JWT
 		return nil, err
 	}
 	jwtToken := &JWTToken{
-		Token: *token,
+		Token:        *token,
+		signedString: signedTokenString,
+	}
+	return jwtToken, nil
+}
+
+// NewSignedToken Create new Signed Token
+func NewSignedToken(claims jwt.Claims) (*JWTToken, error) {
+	token := jwt.NewWithClaims(JWTTokenSigningMethod, claims)
+	signedString, err := token.SignedString(privateKey)
+	if err != nil {
+		return nil, err
+	}
+	token, err = jwt.ParseWithClaims(signedString, claims, func(token *jwt.Token) (interface{}, error) {
+		//e := checkTokenWhenParse(token)
+		return publicKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	jwtToken := &JWTToken{
+		Token:        *token,
+		signedString: signedString,
 	}
 	return jwtToken, nil
 }
@@ -74,23 +103,4 @@ func checkTokenWhenParse(token *jwt.Token) error {
 		return errors.New("token signed method wrong")
 	}
 	return nil
-}
-
-// NewSignedToken Create new Signed Token
-func NewSignedToken(claims jwt.Claims) (*JWTToken, error) {
-	token := jwt.NewWithClaims(JWTTokenSigningMethod, claims)
-	ss, err := token.SignedString(privateKey)
-	if err != nil {
-		return nil, err
-	}
-	token, err = jwt.Parse(ss, func(token *jwt.Token) (interface{}, error) {
-		return publicKey, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	jwtToken := &JWTToken{
-		Token: *token,
-	}
-	return jwtToken, nil
 }

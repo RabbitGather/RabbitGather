@@ -380,7 +380,7 @@ func (h *PeerHandler) offerMessageProcessor(messageRecieved *PeerJsTextMessage) 
 	if err != nil {
 		if err == SentToTargetNotFound {
 			errorMessage := fmt.Sprintf("Error : Destination Peer ID %s Not Exist.", messageRecieved.Dst)
-			err := h.WriteJsonToClient(PeerJsTextMessage{Type: EXPIRE,Payload: errorMessage, Src:messageRecieved.Dst,Dst: messageRecieved.Src})
+			err := h.WriteJsonToClient(PeerJsTextMessage{Type: EXPIRE, Payload: errorMessage, Src: messageRecieved.Dst, Dst: messageRecieved.Src})
 			if err != nil {
 				fmt.Println("PeerHandler - offerMessageProcessor - WriteJsonToClient Error: ", err.Error())
 			}
@@ -464,7 +464,7 @@ func deleteConnection(key *PeerHandler) {
 	_connectionPair.Delete(key)
 }
 
-// Register a new connection between two Handlers
+// Register a new connection between two handlers
 func (*PeerHandler) RegisterConnection(fromHandler *PeerHandler, toHandler *PeerHandler) {
 	setToConnectionPair := func(from *PeerHandler, to *PeerHandler) {
 		connectionList, exist := loadConnection(from)
@@ -492,7 +492,7 @@ func removeSliceItem(s interface{}, i interface{}) (interface{}, bool) {
 	return s, false
 }
 
-// Remove specific connection between two Handlers
+// Remove specific connection between two handlers
 func (*PeerHandler) RemoveConnection(fromHandler *PeerHandler, toHandler *PeerHandler) error {
 	removeFromConnectionPair := func(from *PeerHandler, to *PeerHandler) error {
 		connectionList, exist := loadConnection(from)
@@ -505,7 +505,7 @@ func (*PeerHandler) RemoveConnection(fromHandler *PeerHandler, toHandler *PeerHa
 		}
 		list, ok := removeSliceItem(connectionList, to)
 		if ok {
-			return errors.New("the 'from Handler' is not registered connection with 'to Handler'")
+			return errors.New("the 'from GetHandler' is not registered connection with 'to GetHandler'")
 		}
 		storeConnection(from, list.([]*PeerHandler))
 		return nil
