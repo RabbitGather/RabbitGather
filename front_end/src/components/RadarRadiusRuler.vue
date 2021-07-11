@@ -11,8 +11,8 @@
     v-on:dragscrollend="scrollboxcontainer_dragscrollend"
   >
     <div class="Triangle" ref="triangle"></div>
-    <div class="bg-gray-400 h-full w-max flex flex-row" ref="scrollbox">
-      <div class="" style="width: 50vw" value="0"></div>
+    <div class="bg-gray-400 h-full w-max flex flex-row " ref="scrollbox">
+      <div class="" style="width: 50vw" v-bind:value="min"></div>
       <div
         class="self-end w-auto flex flex-row items-baseline"
         v-for="(points, index) in TenScalePoints"
@@ -73,76 +73,103 @@
           </div>
         </div>
       </div>
-      <div class="" style="width: 50vw"></div>
+      <div class="" style="width: 50vw" v-bind:value="max"></div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import { Options, Vue, prop } from "vue-class-component";
-
+import { remToPx } from "@/global/Util";
 class Props {
   // optional prop
   min = prop<number>({ required: true });
   max = prop<number>({ required: true });
 }
-let htmlfontsize: number;
+// let pointValue = 0;
+// let htmlfontsize = parseInt(
+//   getComputedStyle(document.getElementsByTagName("html")[0], null).fontSize
+// );
+let scrollboxcontainer!: HTMLDivElement;
+let pointValue = 0;
+let triangle!: HTMLDivElement;
+// let helfWindow = window.innerWidth / 2;
+let current = 0;
+let gapeans = false;
+let gape = 0;
+// let updated: boolean;
 @Options({})
 export default class RadarRadiusRuler extends Vue.with(Props) {
-  TenScalePoints: number[][] = [];
-  pointValue = 0;
+  private TenScalePoints: number[][] = [];
   beforeMount() {
-    // console.log(this.min);
-    // console.log(this.max);
     let tempArray: number[] = [];
     for (let i = this.min; i <= this.max; i++) {
+      tempArray.push(i);
       if (tempArray.length == 10) {
         this.TenScalePoints.push([...tempArray]);
         tempArray = [];
-      } else {
-        tempArray.push(i);
       }
     }
     this.TenScalePoints.push(tempArray);
+    // console.log(this.TenScalePoints);
   }
   mounted() {
-    htmlfontsize = parseInt(
-      getComputedStyle(document.getElementsByTagName("html")[0], null).fontSize
-    );
+    scrollboxcontainer = this.$refs.scrollboxcontainer as HTMLDivElement;
+    triangle = this.$refs.triangle as HTMLDivElement;
+    // scrollboxcontainer.scrollLeft += scrollboxcontainer.offsetWidth;
+    let thecenterBar = scrollboxcontainer.querySelector(
+      "[value='" + this.max / 2 + "']"
+    ) as HTMLDivElement;
+    console.log(thecenterBar.offsetLeft);
+    console.log(scrollboxcontainer.scrollLeft);
+    scrollboxcontainer.scrollLeft =
+      thecenterBar.offsetLeft - window.innerWidth / 2 + 3;
+    this.$emit("point-update", this.max / 2);
   }
-
+  // windowResize() {
+  //   // console.log("windowResize");
+  //   helfWindow = window.innerWidth / 2;
+  //   // scrollboxcontainer = this.$refs.scrollboxcontainer as HTMLDivElement;
+  //   // triangle = this.$refs.triangle as HTMLDivElement;
+  // }
   scrollboxcontainer_dragscrollstart() {}
-  scrollboxcontainer_dragscrollmove(deltaX: number) {}
-  remToPx(rem: number): number {
-    return rem * htmlfontsize;
+  scrollboxcontainer_dragscrollmove(deltaX: number) {
+    this.updatePoint();
   }
-  scrollboxcontainer_dragscrollend() {
-    let scrollboxcontainer = this.$refs.scrollboxcontainer as HTMLDivElement;
-    let triangle = this.$refs.triangle as HTMLDivElement;
-    const targitBar = document.elementsFromPoint(
-      triangle.offsetLeft + this.remToPx(0.36),
+  // remToPx(rem: number): number {
+  //   return rem * htmlfontsize;
+  // }
+
+  updatePoint() {
+    let thisBar = document.elementsFromPoint(
+      triangle.offsetLeft + remToPx(0.36),
       window.innerHeight - 5
     )[0] as HTMLDivElement;
 
-    const helfWindow = window.innerWidth / 2;
-    let gape =
-      (targitBar.offsetLeft == 0 ? helfWindow : targitBar.offsetLeft) +
-      this.remToPx(0.5);
-    let current = scrollboxcontainer.scrollLeft + helfWindow - 3;
-    let gapeans = current > gape;
-    scrollboxcontainer.scrollLeft +=
-      gape - current + (gapeans ? this.remToPx(0.5) : -1 * this.remToPx(0.5));
+    gape =
+      (thisBar.offsetLeft == 0 ? window.innerWidth / 2 : thisBar.offsetLeft) +
+      remToPx(0.5);
 
-    let theValue =
-      parseInt(targitBar.attributes.getNamedItem("value")!.value) +
-      (gapeans ? 1 : 0);
-    if (theValue > this.max) {
-      theValue = this.max;
+    current = scrollboxcontainer.scrollLeft + window.innerWidth / 2 - 3;
+    gapeans = current > gape;
+    // if (thisBar === targitBar) {
+    //   // updated = false;
+    //   // return;
+    // } else {
+    //   targitBar = thisBar;
+    // }
+    let rawvalue = parseInt(thisBar.attributes.getNamedItem("value")!.value);
+    let newValue = rawvalue + (gapeans ? 1 : 0);
+
+    if (newValue <= this.max && pointValue != newValue) {
+      pointValue = newValue;
+      this.$emit("point-update", pointValue);
     }
-    if (this.pointValue != theValue) {
-      this.pointValue = theValue;
-      console.log("PointValue: " + this.pointValue);
-    }
+    // updated = true;
+  }
+  scrollboxcontainer_dragscrollend() {
+    scrollboxcontainer.scrollLeft +=
+      gape - current + (gapeans ? remToPx(0.5) : -1 * remToPx(0.5));
   }
 }
 </script>

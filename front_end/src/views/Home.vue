@@ -51,21 +51,9 @@
           "
         ></StatusBar>
         <MainContact
-          class="
-            MainContact
-            flex flex-col
-            items-center
-            static
-            w-full
-            h-auto
-            left-0
-            top-0
-            overflow-hidden
-            flex-none
-            order-1
-            self-stretch
-            flex-grow
-          "
+          :radius="currentPoint"
+          :magnification="6"
+          class="MainContact"
         ></MainContact>
       </div>
       <ControlBox
@@ -85,11 +73,11 @@
       >
       </ControlBox>
     </div>
-
+    <!-- {{ currentPoint }} -->
     <RadarRadiusRuler
-      min=1
-      max=100
-    
+      @point-update="RulerPointUpdate"
+      :min="1"
+      :max="100"
       class="
         RadarRadiusRuler
         flex-row
@@ -125,7 +113,13 @@ import ControlBox from "@/components/ControlBox.vue";
     ControlBox,
   },
 })
-export default class Home extends Vue {}
+export default class Home extends Vue {
+  private currentPoint = 0;
+  RulerPointUpdate(val: number) {
+    // console.log("VAL: " + val);
+    this.currentPoint = val;
+  }
+}
 </script>
 
 <style scoped>
