@@ -14,7 +14,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"rabbit_gather/src/handler"
+	//"rabbit_gather/src/handler"
 	"sync"
 	"time"
 )
@@ -97,16 +97,16 @@ func (w *PeerService) GetPeerIDHandler(c *gin.Context) {
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(uuid.New().String()))
 }
 
-func (p *PeerService) GetHandler(handlername handler.HandlerNames) gin.HandlerFunc {
-	switch handlername {
-	case handler.PeerWebsocketHandler:
-		return p.PeerWebsocketHandler
-	case handler.GetPeerIDHandler:
-		return p.GetPeerIDHandler
-	default:
-		panic("No Such GetHandler")
-	}
-}
+//func (p *PeerService) GetHandler(handlername auth.APIPermissionBitmask) gin.HandlerFunc {
+//	switch handlername {
+//	case auth.PeerWebsocketHandler:
+//		return p.PeerWebsocketHandler
+//	case auth.GetPeerIDHandler:
+//		return p.GetPeerIDHandler
+//	default:
+//		panic("No Such GetHandler")
+//	}
+//}
 
 // Open a websocket connection with a client.
 func (h *PeerService) OpenConnection(writer http.ResponseWriter, request *http.Request) error {

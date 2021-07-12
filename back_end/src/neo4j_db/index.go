@@ -53,11 +53,9 @@ func RunInNewSession(f func(tx neo4j.Transaction) (interface{}, error)) (interfa
 	//}
 	//return result.(*Item), nil
 }
-
-func RunScriptWithParameter(scriptFile string, data map[string]interface{}) (neo4j.Result, error) {
+func RunScriptWithScript(script string, data map[string]interface{}) (neo4j.Result, error) {
 	rs, err := RunInNewSession(func(tx neo4j.Transaction) (interface{}, error) {
-		cyp := util.GetFileStoredPlainText(scriptFile)
-		result, err := tx.Run(cyp, data)
+		result, err := tx.Run(script, data)
 		// In face of driver native errors, make sure to return them directly.
 		// Depending on the error, the driver may try to execute the function again.
 		if err != nil {
@@ -76,4 +74,8 @@ func RunScriptWithParameter(scriptFile string, data map[string]interface{}) (neo
 		return nil, err
 	}
 	return rs.(neo4j.Result), err
+}
+
+func RunScriptWithScriptFile(scriptFile string, data map[string]interface{}) (neo4j.Result, error) {
+	return RunScriptWithScript(util.GetFileStoredPlainText(scriptFile), data)
 }

@@ -77,7 +77,7 @@ func ParseToken(signedTokenString string, claims jwt.Claims) (*JWTToken, error) 
 	return jwtToken, nil
 }
 
-// NewSignedToken Create new Signed Token
+// NewSignedToken Create new Signed token
 func NewSignedToken(claims jwt.Claims) (*JWTToken, error) {
 	token := jwt.NewWithClaims(JWTTokenSigningMethod, claims)
 	signedString, err := token.SignedString(privateKey)

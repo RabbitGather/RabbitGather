@@ -8,6 +8,7 @@ require (
 	github.com/gin-contrib/static v0.0.1
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-playground/validator/v10 v10.6.1 // indirect
+	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.11 // indirect

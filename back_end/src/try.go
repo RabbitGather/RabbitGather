@@ -10,17 +10,29 @@ func (a ABC) name() string {
 
 // API list
 type PermissionCode uint32
+type APIPermissionCode uint32
 
-// API list
 const (
-	SearchArticle PermissionCode = 1 << iota // Token is malformed
+	OK                              = APIPermissionCode(^uint32(0))
+	Admin                           = APIPermissionCode(uint32(0))
+	SearchArticle APIPermissionCode = 1 << iota // token is malformed
 	PostArticle
 	Login
-	PPP
+	GetPeerID
+	PeerWebsockt
+	PeerWebsocketHandler
+	GetPeerIDHandler
+	UserAccountLoginHandler
+	PermissionCheck
 )
 
 func main() {
-	userPermission := PostArticle | Login
+	fmt.Println(OK)
+	fmt.Println(SearchArticle)
+	//fmt.Println(OK)
+	//fmt.Println(OK)
+	//fmt.Println(OK)
+	userPermission := SearchArticle | PostArticle
 	fmt.Println(userPermission)
 	fmt.Println(SearchArticle)
 	fmt.Println(PostArticle)
@@ -28,9 +40,10 @@ func main() {
 	fmt.Println("----------")
 	fmt.Println(SearchArticle & userPermission)
 	fmt.Println(PostArticle & userPermission)
-	fmt.Println(PPP & userPermission)
-	fmt.Println(Login & userPermission) //0
-	//fmt.Println(Login&userPermission)//0
+	fmt.Println(OK & userPermission)
+	fmt.Println(Login & userPermission)     //0
+	fmt.Println(GetPeerID & userPermission) //0
+	fmt.Println(Admin & userPermission)     //0
 
 	//if 1&1{
 	//}
