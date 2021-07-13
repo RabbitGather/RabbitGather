@@ -15,10 +15,13 @@ const (
 	// Only Login User can use
 	Login APIPermissionBitmask = 1 << iota // token is malformed
 
+	// after the page loaded
+	PageLoad
+
 	// Only VIP User can use
-	VIP
+	WaitVerificationCode
 )
 
-func APIAuthorizationCheck(PermissionA, PermissionB APIPermissionBitmask) bool {
+func BitMaskCheck(PermissionA, PermissionB APIPermissionBitmask) bool {
 	return PermissionA&PermissionB != 0
 }

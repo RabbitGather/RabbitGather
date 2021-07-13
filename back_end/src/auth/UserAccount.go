@@ -97,7 +97,7 @@ func (u *UserAccount) NewToken() (*JWTToken, error) {
 }
 
 type PermissionClaims struct {
-	jwt.StandardClaims
+	jwt.StandardClaims   `json:"standard_claims"`
 	APIPermissionBitmask APIPermissionBitmask `json:"api_permission_bitmask"`
 }
 

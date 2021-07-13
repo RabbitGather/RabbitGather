@@ -3,14 +3,15 @@ package api_server
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/kr/pretty"
-	"log"
+	//"log"
 	"net/http"
 	"net/url"
 	"rabbit_gather/src/auth"
+	"rabbit_gather/src/logger"
+
 	//"rabbit_gather/src/handler"
 	"rabbit_gather/src/service"
 	"rabbit_gather/util"
@@ -26,6 +27,7 @@ type APIServer struct {
 }
 
 var ServePath *url.URL
+var log = logger.NewLogger("APIServer")
 
 func init() {
 	type Config struct {
@@ -37,7 +39,7 @@ func init() {
 		panic(err.Error())
 	}
 	ServePath, err = url.Parse(config.ServePath)
-	log.Println("APIServer - ServePath : ", ServePath)
+	log.DEBUG.Println("APIServer - ServePath : ", ServePath)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -46,7 +48,7 @@ func init() {
 func (w *APIServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
 	shutdownCallback(w.shutdown)
 	w.ginEngine = gin.Default()
-	fmt.Println("APIServer - ServePath.String() : ", ServePath.String())
+	log.DEBUG.Println("APIServer - ServePath.String() : ", ServePath.String())
 	w.serverInst = &http.Server{
 		Addr:    ":" + ServePath.Port(),
 		Handler: w.ginEngine,
@@ -60,32 +62,28 @@ func (w *APIServer) Startup(ctx context.Context, shutdownCallback util.ShutdownC
 		req := c.Request
 		if !util.CheckIDENTIFICATION_SYMBOL(req) {
 			c.AbortWithStatus(http.StatusForbidden)
-			log.Printf("reject direct connection from : %s", req.RemoteAddr)
+			log.DEBUG.Printf("reject direct connection from : %s", req.RemoteAddr)
 			return
 		}
 	})
 	w.MountService(ctx)
 	go func() {
 		if err := w.serverInst.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Println("APIServer Error : ", err)
-			fmt.Println("APIServer - w.serverInst : ", w.serverInst)
-			panic("APIServer - ListenAndServe Error")
+			log.ERROR.Println(err)
 		}
 	}()
-	//r.AfterServerStartup()
-	fmt.Println("APIServer Started .")
+	log.DEBUG.Println("APIServer Started .")
 	return nil
 }
 
 func (w *APIServer) shutdown() {
-	//fmt.Println("APIServer - shutdown")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := w.serverInst.Shutdown(ctx); err != nil {
-		log.Println("APIServer fail to shutdown:", err)
+		log.ERROR.Println("APIServer fail to shutdown:", err)
 	} else {
-		log.Println("APIServer closed.")
+		log.DEBUG.Println("APIServer closed.")
 	}
 
 }
@@ -114,7 +112,8 @@ func (w *APIServer) MountService(ctx context.Context) {
 
 	userAccount := service.AccountManagement{}
 	w.HandlePost("/login", userAccount.LoginHandler, auth.Public)
-	w.HandlePost("/signup", userAccount.SignupHandler, auth.Public)
+	w.HandlePost("/signup", userAccount.SignupHandler, auth.WaitVerificationCode)
+	w.HandlePost("/sent_verification_code", userAccount.SentVerificationCodeHandler, auth.Public)
 
 	articleManagement := service.ArticleManagement{}
 	w.HandlePost("/post_article", articleManagement.PostArticleHandler, auth.Login)
@@ -145,43 +144,47 @@ func (w *APIServer) HandleGet(path string, handler func(c *gin.Context), permiss
 func (w *APIServer) permissionCheck(c *gin.Context) {
 	fillPath := c.FullPath()
 	if fillPath == "" {
-		log.Println("permissionCheck - c.FullPath() is empty: ")
-		c.AbortWithStatus(http.StatusNotFound)
+		log.DEBUG.Println("c.FullPath() is empty: ")
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"err": "FullPath is empty",
+		})
 		return
 	}
 	if !needPermissionCheck(c.Request.Method, fillPath) {
 		c.Next()
 		return
 	}
+
 	tokenRawString := c.GetHeader("token")
 	if tokenRawString == "" {
-		c.AbortWithStatus(http.StatusForbidden)
-		log.Println("permissionCheck - Permission needed request with no token: ", pretty.Sprint(c.Request))
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "no token"})
+		log.DEBUG.Println("no token: ", pretty.Sprint(c.Request))
 		return
 	}
 	var uc auth.PermissionClaims
 	token, err := auth.ParseToken(tokenRawString, &uc)
 	if err != nil {
-		c.AbortWithStatus(http.StatusForbidden)
-		log.Printf("searchArticleHandler - ParseToken error : %s", err.Error())
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token not valid"})
+		log.DEBUG.Printf("ParseToken error : %s", err.Error())
 		return
 	}
 	if !token.Valid {
-		c.AbortWithStatus(http.StatusForbidden)
-		log.Printf("searchArticleHandler - token not Valid: %s", pretty.Sprint(*token))
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token not valid"})
+		log.DEBUG.Printf("token not valid: %s", pretty.Sprint(*token))
 		return
 	}
 
-	userClaims, ok := token.Claims.(*auth.PermissionClaims)
-	if !ok {
-		c.AbortWithStatus(http.StatusForbidden)
-		log.Printf("searchArticleHandler - token Claims not type of PermissionClaims: %s", pretty.Sprint(*userClaims))
-		return
-	}
+	userClaims := token.Claims.(*auth.PermissionClaims)
+	//if !ok {
+	//	c.AbortWithStatus(http.StatusForbidden)
+	//	log.DEBUG.Printf("token Claims not type of PermissionClaims: %s", pretty.Sprint(*userClaims))
+	//	return
+	//}
+
 	APIPermissionCode := getAPIPermissionCodeWithServePath(fillPath)
-	if !auth.APIAuthorizationCheck(APIPermissionCode, userClaims.APIPermissionBitmask) {
-		c.AbortWithStatus(http.StatusForbidden)
-		log.Printf("searchArticleHandler - this user don't have permission to access this api: %s", pretty.Sprint(*userClaims))
+	if !auth.BitMaskCheck(APIPermissionCode, userClaims.APIPermissionBitmask) {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "this user don't have permission to access this api"})
+		log.DEBUG.Printf("this user don't have permission to access this api: %s", pretty.Sprint(*userClaims))
 		return
 	}
 	c.Next()
@@ -203,7 +206,7 @@ func needPermissionCheck(method, path string) bool {
 	case "POST":
 		_, exist = pathPermissionMapPost[path]
 	default:
-		panic("unexpected method: " + method)
+		log.ERROR.Println("unexpected method: " + method)
 	}
 	return exist
 }

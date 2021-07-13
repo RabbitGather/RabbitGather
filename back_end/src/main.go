@@ -2,20 +2,23 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
+	//"fmt"
+	//"log"
 	"os"
 	"os/signal"
 	"rabbit_gather/src/api_server"
+	"rabbit_gather/src/logger"
 	"rabbit_gather/src/reverse_proxy_server"
 	"rabbit_gather/src/web_server"
-	"rabbit_gather/src/websocket_server"
 	"syscall"
 	// database init
 	"rabbit_gather/src/neo4j_db"
 )
 
+var log = logger.NewLogger("main")
+
 func main() {
+	log.DEBUG.Println("Start Main.")
 	ctx, cancle := context.WithCancel(context.Background())
 	defer cancle()
 	reverseProxyServer := reverse_proxy_server.ReverseProxyServer{}
@@ -32,9 +35,6 @@ func main() {
 		cancle()
 		panic(err.Error())
 	}
-
-
-
 	ctx2, _ := context.WithCancel(ctx)
 	apiServer := api_server.APIServer{}
 	err = apiServer.Startup(ctx2, shutdownCallback)
@@ -43,16 +43,16 @@ func main() {
 		panic(err.Error())
 	}
 
-	ctx3, _ := context.WithCancel(ctx)
-	websocketServer := websocket_server.WebsocketServer{}
-	err = websocketServer.Startup(ctx3, shutdownCallback)
-	if err != nil {
-		cancle()
-		panic(err.Error())
-	}
+	//ctx3, _ := context.WithCancel(ctx)
+	//websocketServer := websocket_server.WebsocketServer{}
+	//err = websocketServer.Startup(ctx3, shutdownCallback)
+	//if err != nil {
+	//	cancle()
+	//	panic(err.Error())
+	//}
 
 	waitForShutdown(ctx)
-	fmt.Println("Main process end.")
+	log.DEBUG.Println("Main process end.")
 	finalize()
 }
 
@@ -68,9 +68,9 @@ func waitForShutdown(ctx context.Context) {
 	signal.Notify(quitSignal, syscall.SIGINT, syscall.SIGTERM)
 	select {
 	case <-ctx.Done():
-		log.Println("Shutdown with Context done")
+		log.DEBUG.Println("Shutdown with Context done")
 	case <-quitSignal:
-		log.Println("Shutdown with QuitSignal")
+		log.DEBUG.Println("Shutdown with QuitSignal")
 	}
 	runShutdownCallbacks()
 }
@@ -84,6 +84,5 @@ func runShutdownCallbacks() {
 var shutdownCallbackQueue = []func(){}
 
 func shutdownCallback(f func()) {
-	//fmt.Println("append ", name, " : ", f)
 	shutdownCallbackQueue = append(shutdownCallbackQueue, f)
 }

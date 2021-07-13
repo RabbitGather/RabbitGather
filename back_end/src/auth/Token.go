@@ -6,6 +6,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"rabbit_gather/util"
+	"time"
 )
 
 var privateKey *rsa.PrivateKey
@@ -47,6 +48,33 @@ func init() {
 	publicKey = getPublicKey(config.JwtPublicKeyFile)
 }
 
+func NewStandardClaims() *jwt.StandardClaims {
+	//ExpiresAt: 15000,
+	nowTime := time.Now()
+	//	expireTime := util.UnixTimeAfterSec(30)
+	//	issuer:="meowalien.com"
+
+	//Audience:  body.Account,
+	//	ExpiresAt: now.Add(20 * time.Second).Unix(),
+	//		Id:        jwtId,
+	//		IssuedAt:  now.Unix(),
+	//		Issuer:    "ginJWT",
+	//		NotBefore: now.Add(10 * time.Second).Unix(),
+	//		Subject:   body.Account,
+
+	return &jwt.StandardClaims{
+		Audience:  "",
+		ExpiresAt: nowTime.Add(30 * time.Second).Unix(),
+		Id:        util.Snowflake().String(),
+		IssuedAt:  nowTime.Unix(),
+		Issuer:    "meowalien.com",
+		NotBefore: nowTime.Add(10 * time.Second).Unix(),
+		Subject:   "",
+	}
+}
+
+const TokenHeaderKey = "token"
+
 type JWTToken struct {
 	jwt.Token
 	signedString string
@@ -63,6 +91,9 @@ var JWTTokenSigningMethod = jwt.SigningMethodRS256
 
 // ParseToken Parse the signed token string into claims
 func ParseToken(signedTokenString string, claims jwt.Claims) (*JWTToken, error) {
+	if signedTokenString == "" {
+		return nil, errors.New("the token string is \"\"")
+	}
 	token, err := jwt.ParseWithClaims(signedTokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		e := checkTokenWhenParse(token)
 		return publicKey, e

@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
-	"log"
+	//"log"
 	"net/http"
 	"net/url"
+	"rabbit_gather/src/logger"
 	"rabbit_gather/util"
 	"time"
 )
@@ -22,10 +23,9 @@ type WebServer struct {
 }
 
 var ServePath *url.URL
+var log = logger.NewLogger("WebServer")
 
 func init() {
-	//ServePath, _= url.Parse( "http://127.0.0.1:2004")
-
 	type Config struct {
 		ServePath string
 	}
@@ -35,7 +35,7 @@ func init() {
 		panic(err.Error())
 	}
 	ServePath, err = url.Parse(config.ServePath)
-	log.Println("WebServer - ServePath : ",ServePath)
+	log.DEBUG.Println("WebServer - ServePath : ", ServePath)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -44,13 +44,11 @@ func init() {
 func (w *WebServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
 	shutdownCallback(w.shutdown)
 	w.ginEngine = gin.Default()
-	fmt.Println("WebServer - ServePath.String() : ",ServePath.String())
+	fmt.Println("WebServer - ServePath.String() : ", ServePath.String())
 	w.serverInst = &http.Server{
 		Addr:    ":" + ServePath.Port(),
 		Handler: w.ginEngine,
-		//ErrorLog: w.logger,
 		TLSConfig: &tls.Config{
-			//MinVersion: tls.VersionTLS12,
 			ClientAuth: tls.NoClientCert,
 		},
 	}
@@ -58,48 +56,80 @@ func (w *WebServer) Startup(ctx context.Context, shutdownCallback util.ShutdownC
 		req := c.Request
 		if !util.CheckIDENTIFICATION_SYMBOL(req) {
 			c.AbortWithStatus(http.StatusForbidden)
-			log.Printf("reject direct connection from : %s", req.RemoteAddr)
+			log.DEBUG.Printf("reject direct connection from : %s", req.RemoteAddr)
 			return
 		}
 	})
 	w.MountService(ctx)
 	go func() {
-	if err := w.serverInst.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		fmt.Println("WebServer Error : ", err)
-		fmt.Println("WebServer - w.serverInst : ", w.serverInst)
-		panic("WebServer - ListenAndServe Error")
-	}
+		if err := w.serverInst.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.ERROR.Println(err.Error())
+		}
 	}()
-	//r.AfterServerStartup()
-	fmt.Println("WebServer Started .")
+	log.DEBUG.Println("WebServer Started .")
 	return nil
 }
 
 func (w *WebServer) shutdown() {
-	//fmt.Println("APIServer - shutdown")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := w.serverInst.Shutdown(ctx); err != nil {
-		log.Println("WebServer fail to shutdown:", err)
+		log.ERROR.Println("WebServer fail to shutdown:", err)
 	} else {
-		log.Println("WebServer closed.")
+		log.DEBUG.Println("WebServer closed.")
 	}
-
 }
 
 func (w *WebServer) MountService(ctx context.Context) {
-	//w.ginEngine.Static("/","public/web/")
+	//w.ginEngine.Use(w.appendPageLoadBitmask)
 	w.ginEngine.Use(static.Serve("/", static.LocalFile("public/web/", false)))
 	w.ginEngine.LoadHTMLFiles("public/web/index.html")
 
 	w.ginEngine.NoRoute(func(c *gin.Context) {
-		//t, _ := template.ParseFiles("public/web/index.html")
-		c.HTML(http.StatusOK,"index.html" ,gin.H{
+		c.HTML(http.StatusOK, "index.html", gin.H{
 			"title": "Main website",
 		})
 	})
 }
+
+//
+//func (w *WebServer) appendPageLoadBitmask(c *gin.Context) {
+//	//	Add the PageLoad JWT in the head
+//	tokenInRequest := c.GetHeader("token")
+//	var token *auth.JWTToken
+//	if tokenInRequest == "" {
+//		//	new token
+//		var err error
+//		token, err = auth.NewSignedToken(auth.PermissionClaims{
+//			StandardClaims:       *auth.NewStandardClaims(),
+//			APIPermissionBitmask: auth.WaitVerificationCode,
+//		})
+//		if err != nil {
+//			c.AbortWithStatus(http.StatusInternalServerError)
+//			return
+//		}
+//	}else{
+//		//	append Bitmask
+//		var claims *auth.PermissionClaims
+//		var err error
+//		token, err = auth.ParseToken(tokenInRequest, claims)
+//		if err != nil {
+//			c.AbortWithStatus(http.StatusForbidden)
+//			return
+//		}
+//		claims = token.Claims.(*auth.PermissionClaims)
+//		if auth.BitMaskCheck(claims.APIPermissionBitmask, auth.WaitVerificationCode) {
+//			c.AbortWithStatus(http.StatusConflict)
+//			log.Println("SentVerificationCodeHandler - GetToken error")
+//			return
+//		}else{
+//			claims.APIPermissionBitmask = claims.APIPermissionBitmask|auth.WaitVerificationCode
+//		}
+//	}
+//
+//	c.Header(auth.TokenHeaderKey, token.GetSignedString())
+//}
 
 //func (w *WebServer)  indexHandler(c *gin.Context)() {
 //	fmt.Println("WebServer - c : ",c.Request)
