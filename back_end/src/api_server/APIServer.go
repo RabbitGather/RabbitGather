@@ -27,7 +27,7 @@ type APIServer struct {
 }
 
 var ServePath *url.URL
-var log = logger.NewLogger("APIServer")
+var log = logger.NewLoggerWrapper("APIServer")
 
 func init() {
 	type Config struct {
@@ -39,16 +39,18 @@ func init() {
 		panic(err.Error())
 	}
 	ServePath, err = url.Parse(config.ServePath)
-	log.DEBUG.Println("APIServer - ServePath : ", ServePath)
 	if err != nil {
 		panic(err.Error())
 	}
 }
 
 func (w *APIServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
+	log.DEBUG.Println("APIServer listen on : ", ServePath)
+
 	shutdownCallback(w.shutdown)
 	w.ginEngine = gin.Default()
-	log.DEBUG.Println("APIServer - ServePath.String() : ", ServePath.String())
+	//w.ginEngine.TrustedProxies = append(w.ginEngine.TrustedProxies,"127.0.0.1/0" )
+	//log.DEBUG.Println("APIServer - ServePath.String() : ", ServePath.String())
 	w.serverInst = &http.Server{
 		Addr:    ":" + ServePath.Port(),
 		Handler: w.ginEngine,
@@ -131,7 +133,7 @@ func (w *APIServer) useMiddleware(middleware func(c *gin.Context)) {
 var pathPermissionMapPost = map[string]auth.APIPermissionBitmask{}
 var pathPermissionMapGet = map[string]auth.APIPermissionBitmask{}
 
-func (w *APIServer) HandlePost(path string, handler func(c *gin.Context), permissionCode auth.APIPermissionBitmask) {
+func (w *APIServer) HandlePost(path string, handler gin.HandlerFunc, permissionCode auth.APIPermissionBitmask) {
 	pathPermissionMapPost[path] = permissionCode
 	w.ginEngine.POST(path, handler)
 }
@@ -143,22 +145,15 @@ func (w *APIServer) HandleGet(path string, handler func(c *gin.Context), permiss
 
 func (w *APIServer) permissionCheck(c *gin.Context) {
 	fillPath := c.FullPath()
-	if fillPath == "" {
-		log.DEBUG.Println("c.FullPath() is empty: ")
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			"err": "FullPath is empty",
-		})
-		return
-	}
 	if !needPermissionCheck(c.Request.Method, fillPath) {
 		c.Next()
 		return
 	}
 
-	tokenRawString := c.GetHeader("token")
+	tokenRawString := c.GetHeader(auth.TokenHeaderKey)
 	if tokenRawString == "" {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "no token"})
-		log.DEBUG.Println("no token: ", pretty.Sprint(c.Request))
+		log.DEBUG.Println("no token: ", pretty.Sprint(c.Request.Header))
 		return
 	}
 	var uc auth.PermissionClaims
@@ -174,15 +169,15 @@ func (w *APIServer) permissionCheck(c *gin.Context) {
 		return
 	}
 
-	userClaims := token.Claims.(*auth.PermissionClaims)
-	//if !ok {
-	//	c.AbortWithStatus(http.StatusForbidden)
-	//	log.DEBUG.Printf("token Claims not type of PermissionClaims: %s", pretty.Sprint(*userClaims))
-	//	return
-	//}
+	userClaims, ok := token.Claims.(*auth.PermissionClaims)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "token not valid"})
+		log.ERROR.Printf("token Claims not type of PermissionClaims: %s", pretty.Sprint(*userClaims))
+		return
+	}
 
 	APIPermissionCode := getAPIPermissionCodeWithServePath(fillPath)
-	if !auth.BitMaskCheck(APIPermissionCode, userClaims.APIPermissionBitmask) {
+	if !auth.BitMaskCheck(APIPermissionCode, userClaims.PermissionBitmask) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "this user don't have permission to access this api"})
 		log.DEBUG.Printf("this user don't have permission to access this api: %s", pretty.Sprint(*userClaims))
 		return
@@ -197,16 +192,23 @@ func getAPIPermissionCodeWithServePath(path string) auth.APIPermissionBitmask {
 
 func needPermissionCheck(method, path string) bool {
 	exist := false
+	permissionBitMask := auth.Admin
 	switch method {
 	//an empty string means GET.
 	case "":
-		_, exist = pathPermissionMapGet[path]
+		permissionBitMask, exist = pathPermissionMapGet[path]
 	case "GET":
-		_, exist = pathPermissionMapGet[path]
+		permissionBitMask, exist = pathPermissionMapGet[path]
 	case "POST":
-		_, exist = pathPermissionMapPost[path]
+		permissionBitMask, exist = pathPermissionMapPost[path]
 	default:
 		log.ERROR.Println("unexpected method: " + method)
 	}
-	return exist
+	if exist {
+		//log.TempLog("method, path: %s,%s",method, path)
+		//log.TempLog("permissionBitMask: %d ",permissionBitMask)
+		return permissionBitMask != auth.Public
+	} else {
+		return false
+	}
 }

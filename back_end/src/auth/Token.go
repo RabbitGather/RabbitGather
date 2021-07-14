@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
+	"rabbit_gather/src/logger"
 	"rabbit_gather/util"
 	"time"
 )
@@ -14,8 +15,10 @@ var publicKey *rsa.PublicKey
 
 func init() {
 	type Config struct {
-		JwtPrivateKeyFile string `json:"jwt_private_key_file"`
-		JwtPublicKeyFile  string `json:"jwt_public_key_file"`
+		JwtPrivateKeyFile     string `json:"jwt_private_key_file"`
+		JwtPublicKeyFile      string `json:"jwt_public_key_file"`
+		ExpiresAtTimeDuration int    `json:"expires_at_time_sec"`
+		NotBeforeTimeDuration int    `json:"not_before_time_sec"`
 	}
 	var config Config
 	err := util.ParseJsonConfic(&config, "config/JWT.config.json")
@@ -44,31 +47,24 @@ func init() {
 		}
 		return
 	}
+	ExpiresAtTimeDuration = time.Duration(config.ExpiresAtTimeDuration)
+	NotBeforeTimeDuration = time.Duration(config.NotBeforeTimeDuration)
 	privateKey = getPrivateKey(config.JwtPrivateKeyFile)
 	publicKey = getPublicKey(config.JwtPublicKeyFile)
 }
 
+var ExpiresAtTimeDuration time.Duration
+var NotBeforeTimeDuration time.Duration
+
 func NewStandardClaims() *jwt.StandardClaims {
-	//ExpiresAt: 15000,
 	nowTime := time.Now()
-	//	expireTime := util.UnixTimeAfterSec(30)
-	//	issuer:="meowalien.com"
-
-	//Audience:  body.Account,
-	//	ExpiresAt: now.Add(20 * time.Second).Unix(),
-	//		Id:        jwtId,
-	//		IssuedAt:  now.Unix(),
-	//		Issuer:    "ginJWT",
-	//		NotBefore: now.Add(10 * time.Second).Unix(),
-	//		Subject:   body.Account,
-
 	return &jwt.StandardClaims{
 		Audience:  "",
-		ExpiresAt: nowTime.Add(30 * time.Second).Unix(),
+		ExpiresAt: nowTime.Add(ExpiresAtTimeDuration).Unix(),
 		Id:        util.Snowflake().String(),
 		IssuedAt:  nowTime.Unix(),
 		Issuer:    "meowalien.com",
-		NotBefore: nowTime.Add(10 * time.Second).Unix(),
+		NotBefore: nowTime.Add(NotBeforeTimeDuration).Unix(),
 		Subject:   "",
 	}
 }
@@ -81,10 +77,24 @@ type JWTToken struct {
 }
 
 func (t *JWTToken) GetSignedString() string {
-	if t.signedString != "" {
+	if t.signedString == "" {
 		panic("signedString is empty")
 	}
 	return t.signedString
+}
+
+func (t *JWTToken) AppendBitMask(code APIPermissionBitmask) (*JWTToken, error) {
+	permissionClaims, ok := t.Claims.(*PermissionClaims)
+	if !ok {
+		return nil, errors.New("The Claims is not a PermissionClaims")
+	}
+	if BitMaskCheck(permissionClaims.PermissionBitmask, code) {
+		return t, nil
+	} else {
+		permissionClaims.PermissionBitmask = permissionClaims.PermissionBitmask | code
+	}
+	newToken, err := NewSignedToken(permissionClaims)
+	return newToken, err
 }
 
 var JWTTokenSigningMethod = jwt.SigningMethodRS256
@@ -108,18 +118,21 @@ func ParseToken(signedTokenString string, claims jwt.Claims) (*JWTToken, error) 
 	return jwtToken, nil
 }
 
+var log = logger.NewLoggerWrapper("auth.Token")
+
 // NewSignedToken Create new Signed token
 func NewSignedToken(claims jwt.Claims) (*JWTToken, error) {
 	token := jwt.NewWithClaims(JWTTokenSigningMethod, claims)
 	signedString, err := token.SignedString(privateKey)
 	if err != nil {
+		log.DEBUG.Println("NewSignedToken Error: ", err.Error())
 		return nil, err
 	}
 	token, err = jwt.ParseWithClaims(signedString, claims, func(token *jwt.Token) (interface{}, error) {
-		//e := checkTokenWhenParse(token)
 		return publicKey, nil
 	})
 	if err != nil {
+		log.DEBUG.Println("ParseWithClaims Error: ", err.Error())
 		return nil, err
 	}
 	jwtToken := &JWTToken{

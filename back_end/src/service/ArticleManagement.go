@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"log"
+	//"log"
 	"net/http"
 	//"rabbit_gather/src/handler"
 	"rabbit_gather/src/neo4j_db"
@@ -13,7 +13,7 @@ import (
 type ArticleManagement struct {
 }
 
-//func (a *ArticleManagement) GetHandler(handlerName auth.APIPermissionBitmask) gin.HandlerFunc {
+//func (a *ArticleManagement) GetHandler(handlerName auth.PermissionBitmask) gin.HandlerFunc {
 //	switch handlerName {
 //	case auth.PostArticle:
 //		return a.PostArticleHandler
@@ -34,7 +34,7 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 	err := util.ParseRequestJson(c.Request.Body, &searchArticleRequest)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
-		log.Printf("SearchArticleHandler - parseRequestJson error : %s", err.Error())
+		log.DEBUG.Printf("SearchArticleHandler - parseRequestJson error : %s", err.Error())
 		return
 	}
 }
@@ -53,7 +53,7 @@ func (w *ArticleManagement) PostArticleHandler(c *gin.Context) {
 	err := util.ParseRequestJson(c.Request.Body, &articleReceived)
 	if err != nil {
 		c.AbortWithStatus(http.StatusForbidden)
-		log.Printf("PostArticleHandler - parseRequestJson error : %s", err.Error())
+		log.DEBUG.Printf("PostArticleHandler - parseRequestJson error : %s", err.Error())
 		return
 	}
 	fmt.Println("Title : ", articleReceived.Title)

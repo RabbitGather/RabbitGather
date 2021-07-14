@@ -3,7 +3,6 @@ package web_server
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	//"log"
@@ -23,7 +22,7 @@ type WebServer struct {
 }
 
 var ServePath *url.URL
-var log = logger.NewLogger("WebServer")
+var log = logger.NewLoggerWrapper("WebServer")
 
 func init() {
 	type Config struct {
@@ -35,16 +34,18 @@ func init() {
 		panic(err.Error())
 	}
 	ServePath, err = url.Parse(config.ServePath)
-	log.DEBUG.Println("WebServer - ServePath : ", ServePath)
+	//log.DEBUG.Println("WebServer - ServePath : ", ServePath)
 	if err != nil {
 		panic(err.Error())
 	}
 }
 
 func (w *WebServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
+	log.DEBUG.Println("WebServer listen on : ", ServePath)
+
 	shutdownCallback(w.shutdown)
 	w.ginEngine = gin.Default()
-	fmt.Println("WebServer - ServePath.String() : ", ServePath.String())
+	//fmt.Println("WebServer - ServePath.String() : ", ServePath.String())
 	w.serverInst = &http.Server{
 		Addr:    ":" + ServePath.Port(),
 		Handler: w.ginEngine,
@@ -103,7 +104,7 @@ func (w *WebServer) MountService(ctx context.Context) {
 //		var err error
 //		token, err = auth.NewSignedToken(auth.PermissionClaims{
 //			StandardClaims:       *auth.NewStandardClaims(),
-//			APIPermissionBitmask: auth.WaitVerificationCode,
+//			PermissionBitmask: auth.WaitVerificationCode,
 //		})
 //		if err != nil {
 //			c.AbortWithStatus(http.StatusInternalServerError)
@@ -119,12 +120,12 @@ func (w *WebServer) MountService(ctx context.Context) {
 //			return
 //		}
 //		claims = token.Claims.(*auth.PermissionClaims)
-//		if auth.BitMaskCheck(claims.APIPermissionBitmask, auth.WaitVerificationCode) {
+//		if auth.BitMaskCheck(claims.PermissionBitmask, auth.WaitVerificationCode) {
 //			c.AbortWithStatus(http.StatusConflict)
 //			log.Println("SentVerificationCodeHandler - GetToken error")
 //			return
 //		}else{
-//			claims.APIPermissionBitmask = claims.APIPermissionBitmask|auth.WaitVerificationCode
+//			claims.PermissionBitmask = claims.PermissionBitmask|auth.WaitVerificationCode
 //		}
 //	}
 //

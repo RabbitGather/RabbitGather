@@ -6,7 +6,8 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"log"
+	//"log"
+	"rabbit_gather/src/logger"
 )
 
 type DatabaseType string
@@ -24,10 +25,6 @@ type DatabaseConnectionConfiguration struct {
 	Port     string `json:"port"`
 }
 
-//func (d *DatabaseConnectionConfiguration) GetMysqlConnectionString()string  {
-//	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?allowNativePasswords=true", d.User, d.Password, d.Host,d.Port, d.Database)
-//}
-
 // 透過sql連接字串創建一個DBOperator，如果資料庫相同則返回暫存
 func GetOperator(dbType DatabaseType, conf DatabaseConnectionConfiguration) DBOperator {
 	switch dbType {
@@ -41,25 +38,7 @@ func GetOperator(dbType DatabaseType, conf DatabaseConnectionConfiguration) DBOp
 
 }
 
-//
-//func GetNeo4JOperator(config DatabaseConnectionConfiguration) *MysqlOperator {
-//	//err := util.ParseJsonConfic(&config, "config/neo4j_db.config.json")
-//	//if err != nil {
-//	//	panic(err.Error())
-//	//}
-//	//"neo4j://core.db.server:7687"
-//	//{
-//	//	"DBUri": "neo4j://34.80.232.218:7687",
-//	//	"Username": "neo4j",
-//	//	"Password": "!mJack00thisisking"
-//	//}
-//	connectionString:=fmt.Sprintf("neo4j://%s")
-//
-//	driver, err = neo4j.NewDriver(config.DBUri, neo4j.BasicAuth(config.Username, config.Password, ""))
-//	if err != nil {
-//		panic(err.Error())
-//	}
-//}
+var log = logger.NewLoggerWrapper("DBOperator")
 
 func GetMysqlOperator(d DatabaseConnectionConfiguration) DBOperator {
 	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?allowNativePasswords=true", d.User, d.Password, d.Host, d.Port, d.Database)
@@ -70,19 +49,20 @@ func GetMysqlOperator(d DatabaseConnectionConfiguration) DBOperator {
 
 	db, err := sql.Open(Mysql, connectionString)
 	if err != nil {
-		log.Fatal("Error creating connection: ", err.Error())
+		log.ERROR.Println("Error creating connection: ", err.Error())
 	}
 	ctx := context.Background()
 	err = db.PingContext(ctx)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.ERROR.Println(err.Error())
 	}
-	fmt.Printf("%s - %s  Connected!\n", Mysql, connectionString)
+	//fmt.Printf("%s - %s  Connected!\n", Mysql, connectionString)
 	dbo = &MysqlOperator{
 		db: db,
 	}
 	dbo.Initialize()
 	operatorCatch[[2]string{Mysql, connectionString}] = dbo
+	log.DEBUG.Printf("Create new db connection: \"%s\"@\"%s\"", d.Database, d.Host)
 	return dbo
 }
 
@@ -90,7 +70,7 @@ var operatorCatch = map[[2]string]DBOperator{}
 
 type DBOperator interface {
 	Statement(s string) *sql.Stmt
-	Close()
+	Close() error
 	Initialize()
 }
 type MysqlOperator struct {
@@ -112,11 +92,8 @@ func (d *MysqlOperator) Statement(s string) *sql.Stmt {
 	return stat
 }
 
-func (d *MysqlOperator) Close() {
-	err := d.db.Close()
-	if err != nil {
-		log.Println("MysqlOperator close error : ", err.Error())
-	}
+func (d *MysqlOperator) Close() error {
+	return d.db.Close()
 }
 
 func (d *MysqlOperator) Initialize() {
@@ -124,8 +101,20 @@ func (d *MysqlOperator) Initialize() {
 
 }
 
-func Close() {
+func Close() error {
+	var err error
 	for _, operator := range operatorCatch {
-		operator.Close()
+		e := operator.Close()
+		if e != nil {
+			if err == nil {
+				err = e
+			} else {
+				err = fmt.Errorf("%s -> %w", err.Error(), e)
+			}
+		}
 	}
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
+	"rabbit_gather/src/db_operator"
+	"rabbit_gather/src/neo4j_db"
+
 	//"fmt"
 	//"log"
 	"os"
@@ -12,13 +16,19 @@ import (
 	"rabbit_gather/src/web_server"
 	"syscall"
 	// database init
-	"rabbit_gather/src/neo4j_db"
+	//"rabbit_gather/src/neo4j_db"
 )
 
-var log = logger.NewLogger("main")
+var log = logger.NewLoggerWrapper("main")
 
+func init() {
+	log.ERROR.Println("ERROR Logger Test.")
+	log.WARNING.Println("WARNING Logger Test.")
+	log.DEBUG.Println("DEBUG Logger Test.")
+}
 func main() {
-	log.DEBUG.Println("Start Main.")
+
+	log.DEBUG.Println("main start")
 	ctx, cancle := context.WithCancel(context.Background())
 	defer cancle()
 	reverseProxyServer := reverse_proxy_server.ReverseProxyServer{}
@@ -57,9 +67,14 @@ func main() {
 }
 
 func finalize() {
-	err := neo4j_db.Close()
-	if err != nil {
-		panic(err.Error())
+	err := db_operator.Close()
+	for err != nil {
+		log.ERROR.Println(err.Error())
+		err = errors.Unwrap(err)
+	}
+	err1 := neo4j_db.Close()
+	if err1 != nil {
+		log.ERROR.Println(err1.Error())
 	}
 }
 

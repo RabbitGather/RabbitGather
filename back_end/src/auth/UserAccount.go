@@ -13,10 +13,12 @@ func CreateNewUserAccount(username, password string, permission APIPermissionBit
 	statment := dbOperator.Statement("insert into user ( name, password, api_permission_bitmask) value (?,?,?);")
 	res, err := statment.Exec(username, password, uint32(permission))
 	if err != nil {
+		log.DEBUG.Println(err.Error())
 		return nil, err
 	}
 	id, err := res.LastInsertId()
 	if err != nil {
+		log.DEBUG.Println(err.Error())
 		return nil, err
 	}
 	return &UserAccount{
@@ -82,23 +84,24 @@ func (u *UserAccount) CheckPassword(password string) error {
 func (u *UserAccount) NewToken() (*JWTToken, error) {
 	theConst := NormalUserClaims{
 		PermissionClaims: PermissionClaims{
-			StandardClaims:       jwt.StandardClaims{},
-			APIPermissionBitmask: u.APIPermissionBitmask,
+			StandardClaims:    *NewStandardClaims(),
+			PermissionBitmask: u.APIPermissionBitmask,
 		},
 		UserName: u.UserName,
 		UserID:   u.UserID,
 	}
 	//token := JWTToken{}
-	token, err := NewSignedToken(theConst)
+	token, err := NewSignedToken(&theConst)
 	if err != nil {
+		log.ERROR.Println(err.Error())
 		return nil, err
 	}
 	return token, nil
 }
 
 type PermissionClaims struct {
-	jwt.StandardClaims   `json:"standard_claims"`
-	APIPermissionBitmask APIPermissionBitmask `json:"api_permission_bitmask"`
+	jwt.StandardClaims `json:"standard_claims"`
+	PermissionBitmask  APIPermissionBitmask `json:"api_permission_bitmask"`
 }
 
 type NormalUserClaims struct {

@@ -3,4 +3,3 @@ config/
 ssl/
 src/pkg/
 try/
-log/

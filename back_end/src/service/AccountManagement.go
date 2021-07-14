@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/kr/pretty"
 	"net/http"
 	"rabbit_gather/src/auth"
 	"rabbit_gather/src/db_operator"
@@ -63,6 +64,8 @@ func (w *AccountManagement) LoginHandler(c *gin.Context) {
 	})
 }
 
+const NormalUserPermission = auth.Login
+
 func (w *AccountManagement) SignupHandler(c *gin.Context) {
 	var userinput SignupUserInput
 	if err := c.ShouldBindJSON(&userinput); err != nil {
@@ -80,16 +83,16 @@ func (w *AccountManagement) SignupHandler(c *gin.Context) {
 	bindingPackage, err := w.getVerificationCodeBindingPackage(userinput.VerificationCode)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "verification_code wrong"})
-		log.DEBUG.Printf("Signup - VerificationCode wrong : %s", err.Error())
+		log.DEBUG.Printf("VerificationCode wrong : %s", err.Error())
 		return
 	}
 	if !bindingPackage.Verify(userinput) {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "verification_code wrong"})
-		log.DEBUG.Println("Signup - VerificationCode Verify fail : %s")
+		log.DEBUG.Println("VerificationCode Verify fail : %s")
 		return
 	}
-	permission := auth.Login
-	userAccount, err := auth.CreateNewUserAccount(userinput.Username, userinput.Password, permission)
+
+	userAccount, err := auth.CreateNewUserAccount(userinput.Username, userinput.Password, NormalUserPermission)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "create new user account error"})
 		log.ERROR.Printf("Signup - GetToken error : %s", err.Error())
@@ -101,34 +104,98 @@ func (w *AccountManagement) SignupHandler(c *gin.Context) {
 		log.ERROR.Printf("Signup - GetToken error : %s", err.Error())
 		return
 	}
+	w.dropVerificationCode(userinput.VerificationCode)
 	c.JSON(200, gin.H{
 		"token": userToken.GetSignedString(),
 	})
 }
 
 func (w *AccountManagement) SentVerificationCodeHandler(c *gin.Context) {
+	// check if repeat request in too short time.
+	log.TempLog().Println("AccountManagement GetClientIP(c): ", util.GetClientIP(c))
+	log.TempLog().Println("AccountManagement Header: ", pretty.Sprint(c.Request.Header))
+
 	var userinput VerificationCodeBindingPackage
 	if err := c.ShouldBindJSON(&userinput); err != nil {
 		c.AbortWithStatusJSON(
 			http.StatusForbidden,
 			gin.H{"err": "wrong input"},
 		)
+		log.DEBUG.Println("wrong input when ShouldBindJSON: ", err.Error())
 		return
 	}
+	verificationCode := w.NewVerificationCode()
 	switch userinput.Type {
 	case EMAIL:
-		w.sentVerificationCodeToMail(userinput.Email)
+		w.sentVerificationCodeToMail(verificationCode, userinput.Email)
 	case Phone:
-		w.sentVerificationCodeToMail(userinput.Phone)
+		w.sentVerificationCodeToPhone(verificationCode, userinput.Phone)
 	default:
 		log.ERROR.Println("unknown type")
+		return
 	}
+	existToken := c.GetHeader(auth.TokenHeaderKey)
+	if existToken == "" {
+		//	create token
+		claims := auth.PermissionClaims{
+			StandardClaims:    *auth.NewStandardClaims(),
+			PermissionBitmask: auth.WaitVerificationCode,
+		}
+		token, err := auth.NewSignedToken(&claims)
+		if err != nil {
+			c.AbortWithStatusJSON(
+				http.StatusInternalServerError,
+				gin.H{"err": "fail to create WaitVerificationCode token"},
+			)
+			log.DEBUG.Println("fail to create WaitVerificationCode token: ", err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{auth.TokenHeaderKey: token.GetSignedString()})
+	} else {
+		//	append permission bit mask
+		var claims auth.PermissionClaims
+		token, err := auth.ParseToken(existToken, &claims)
+
+		if err != nil {
+			c.AbortWithStatusJSON(
+				http.StatusForbidden,
+				gin.H{"err": "fail with ParseToken"},
+			)
+			log.DEBUG.Println("fail with ParseToken")
+
+			return
+		}
+		if !token.Valid {
+			c.AbortWithStatusJSON(
+				http.StatusForbidden,
+				gin.H{"err": "token not Valid"},
+			)
+			log.DEBUG.Println("token not Valid")
+			return
+		}
+		newToken, err := token.AppendBitMask(auth.WaitVerificationCode)
+		if err != nil {
+			c.AbortWithStatusJSON(
+				http.StatusInternalServerError,
+				gin.H{"err": "error when AppendBitMask"},
+			)
+			log.DEBUG.Println("error when AppendBitMask: ", err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{auth.TokenHeaderKey: newToken.GetSignedString()})
+	}
+
+	w.catchVerificationCode(verificationCode, &userinput)
 }
 
 type AccountManagement struct {
 }
 
-var log = logger.NewLogger("AccountManagement")
+var log *logger.LoggerWrapper
+
+func init() {
+	log = logger.NewLoggerWrapper("AccountManagement")
+}
 
 var dbOperator db_operator.DBOperator
 
@@ -181,7 +248,7 @@ func (w *AccountManagement) getVerificationCodeBindingPackage(code string) (*Ver
 }
 
 type VerificationCodeBindingPackage struct {
-	Type  int8   `json:"type"`
+	Type  string `json:"type"`
 	Email string `json:"email,omitempty"`
 	Phone string `json:"phone,omitempty"`
 }
@@ -201,15 +268,30 @@ func (p *VerificationCodeBindingPackage) Verify(userinput SignupUserInput) bool 
 var verificationCodeMap = map[string]*VerificationCodeBindingPackage{}
 
 const (
-	EMAIL int8 = iota
-	Phone
+	EMAIL string = "email"
+	Phone string = "phone"
 )
 
-func (w *AccountManagement) sentVerificationCodeToMail(email string) {
-	log.DEBUG.Println("sentVerificationCodeToMail: ", email)
-	verificationCode := util.Snowflake().String()[:5]
-	verificationCodeMap[verificationCode] = &VerificationCodeBindingPackage{
-		Type:  EMAIL,
-		Email: email,
-	}
+func (w *AccountManagement) catchVerificationCode(code string, pkg *VerificationCodeBindingPackage) {
+	log.DEBUG.Println("catchVerificationCode: ", code)
+	verificationCodeMap[code] = pkg
+}
+func (w *AccountManagement) sentVerificationCodeToMail(code, email string) error {
+	log.DEBUG.Printf("NOT IMPLEMENT - sentVerificationCode to Mail: %s, Code:%s", email, code)
+	return nil
+}
+func (w *AccountManagement) sentVerificationCodeToPhone(code, phone string) error {
+	log.DEBUG.Printf("NOT IMPLEMENT - sentVerificationCode to Phone: %s, Code:%s", phone, code)
+	return nil
+}
+
+const VerificationCodeLength = 4
+
+func (w *AccountManagement) NewVerificationCode() string {
+	//a := fmt.Sprintf("\\%")//"%4d"
+	return util.NewVerificationCodeWithLength(VerificationCodeLength)
+}
+
+func (w *AccountManagement) dropVerificationCode(code string) {
+	delete(verificationCodeMap, code)
 }

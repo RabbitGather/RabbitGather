@@ -27,7 +27,7 @@ var KEY_FILE string
 var ServePath *url.URL
 var SSLCertificationsCrts []string
 var redirectAddrMap map[string]*url.URL
-var log = logger.NewLogger("ReverseProxyServer")
+var log = logger.NewLoggerWrapper("ReverseProxyServer")
 
 func init() {
 	type Config struct {
@@ -63,6 +63,8 @@ func init() {
 }
 
 func (r *ReverseProxyServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
+	log.DEBUG.Println("ReverseProxyServer listen on : ", ServePath)
+
 	shutdownCallback(r.shutdown)
 	r.ginEngine = gin.Default()
 	crtPool := x509.NewCertPool()
@@ -73,6 +75,24 @@ func (r *ReverseProxyServer) Startup(ctx context.Context, shutdownCallback util.
 		}
 		crtPool.AppendCertsFromPEM(crtFile)
 	}
+
+	r.ginEngine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		return fmt.Sprintf("%s |%s %d %s| %s |%s %s %s %s | %s | %s | %s\n",
+			param.TimeStamp.Format(time.RFC1123),
+			param.StatusCodeColor(),
+			param.StatusCode,
+			param.ResetColor(),
+			param.ClientIP,
+			param.MethodColor(),
+			param.Method,
+			param.ResetColor(),
+			param.Path,
+			param.Latency,
+			param.Request.UserAgent(),
+			param.ErrorMessage,
+		)
+	}))
+
 	// 分配器掛載在根路由，轉發任何種類的請求
 	r.ginEngine.Use(r.distributor)
 
@@ -85,6 +105,16 @@ func (r *ReverseProxyServer) Startup(ctx context.Context, shutdownCallback util.
 			ClientCAs:  crtPool,
 			ClientAuth: tls.VerifyClientCertIfGiven,
 		},
+		ReadTimeout:       0,
+		ReadHeaderTimeout: 0,
+		WriteTimeout:      0,
+		IdleTimeout:       0,
+		MaxHeaderBytes:    0,
+		TLSNextProto:      nil,
+		ConnState:         nil,
+		ErrorLog:          &log.ERROR.Logger,
+		BaseContext:       nil,
+		ConnContext:       nil,
 	}
 
 	go func() {
@@ -100,7 +130,10 @@ func (r *ReverseProxyServer) Startup(ctx context.Context, shutdownCallback util.
 
 // 分配請求的主要邏輯
 func (s *ReverseProxyServer) distributor(c *gin.Context) {
-	fmt.Println("ReverseProxyServer - Request Host : ", c.Request.Host)
+	log.DEBUG.Println("ReverseProxyServer - Request Host : ", c.Request.Host)
+	log.DEBUG.Println("ReverseProxyServer GetClientIP: ", c.ClientIP())
+
+	//log.TempLog().Println("ReverseProxyServer Header: ",pretty.Sprint(c.Request.Header))
 	req := c.Request
 	if req.Host == "" {
 		c.AbortWithStatusJSON(
@@ -128,10 +161,13 @@ func (s *ReverseProxyServer) distributor(c *gin.Context) {
 	proxy.Director = func(req *http.Request) {
 		req.URL.Scheme = realAddrURL.Scheme
 		req.URL.Host = realAddrURL.Host
+
 		req.Header.Add(util.IDENTIFICATION_SYMBOL_KEY, util.IDENTIFICATION_SYMBOL)
+		req.Header.Set(util.ClientIP_KEY, c.ClientIP())
 	}
 	proxy.ModifyResponse = func(response *http.Response) error {
 		response.Header.Del(util.IDENTIFICATION_SYMBOL_KEY)
+		response.Header.Del(util.ClientIP_KEY)
 		return nil
 	}
 	proxy.ServeHTTP(c.Writer, c.Request)

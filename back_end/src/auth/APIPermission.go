@@ -6,19 +6,20 @@ type APIPermissionBitmask uint32
 //type APINames Code
 
 const (
-	// Everyone can use
+	// public open api
 	Public = APIPermissionBitmask(^uint32(0))
 
 	// Only Admin can use
 	Admin = APIPermissionBitmask(uint32(0))
+	//Admin =NoAccess-1
 
-	// Only Login User can use
+	// login status
 	Login APIPermissionBitmask = 1 << iota // token is malformed
 
-	// after the page loaded
-	PageLoad
+	//// after the page loaded
+	//PageLoad
 
-	// Only VIP User can use
+	// Wait for VerificationCode status
 	WaitVerificationCode
 )
 

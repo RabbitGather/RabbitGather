@@ -11,7 +11,7 @@ import (
 	"github.com/kr/pretty"
 	"io"
 	"io/ioutil"
-	"log"
+	//"log"
 	"net/http"
 	"net/url"
 	//"rabbit_gather/src/handler"
@@ -81,13 +81,13 @@ func (p *PeerService) PeerWebsocketHandler(c *gin.Context) {
 	urlQuery := c.Request.URL.Query()
 	err := p.ParseQuery(urlQuery)
 	if err != nil {
-		log.Println("PeerService - ParseQuery Error : ", err.Error())
+		log.DEBUG.Println("PeerService - ParseQuery Error : ", err.Error())
 		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
 	err = p.OpenConnection(c.Writer, c.Request)
 	if err != nil {
-		log.Println("PeerService - OpenConnection Error : ", err.Error())
+		log.DEBUG.Println("PeerService - OpenConnection Error : ", err.Error())
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -97,7 +97,7 @@ func (w *PeerService) GetPeerIDHandler(c *gin.Context) {
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(uuid.New().String()))
 }
 
-//func (p *PeerService) GetHandler(handlername auth.APIPermissionBitmask) gin.HandlerFunc {
+//func (p *PeerService) GetHandler(handlername auth.PermissionBitmask) gin.HandlerFunc {
 //	switch handlername {
 //	case auth.PeerWebsocketHandler:
 //		return p.PeerWebsocketHandler
