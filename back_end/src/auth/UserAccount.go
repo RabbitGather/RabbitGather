@@ -38,7 +38,7 @@ func CreateNewUserAccount(userinfo UserInformation) (*UserAccount, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := statment.Exec(userinfo.Username, password, uint32(permission))
+	res, err := statment.Exec(userinfo.Username, password, uint32(userinfo.Permission))
 	if err != nil {
 		log.DEBUG.Println(err.Error())
 		return nil, err
@@ -49,9 +49,9 @@ func CreateNewUserAccount(userinfo UserInformation) (*UserAccount, error) {
 		return nil, err
 	}
 	return &UserAccount{
-		UserName:             username,
+		UserName:             userinfo.Username,
 		UserID:               uint32(id),
-		APIPermissionBitmask: permission,
+		APIPermissionBitmask: userinfo.Permission,
 	}, nil
 }
 
