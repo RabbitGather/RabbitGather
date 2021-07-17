@@ -17,10 +17,10 @@ require (
 	github.com/kr/pretty v0.2.1
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
+	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/neo4j/neo4j-go-driver/v4 v4.3.0
 	github.com/ugorji/go v1.2.6 // indirect
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a // indirect
-	golang.org/x/sys v0.0.0-20210611083646-a4fc73990273 // indirect
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 )

@@ -42,5 +42,5 @@ func GetRandomInt(min int64, max int64) int64 {
 }
 
 func NewVerificationCodeWithLength(d int) string {
-	return fmt.Sprintf(fmt.Sprintf("%%%dd", d), GetSnowflakeIntWithLength(int64(d)))
+	return fmt.Sprintf(fmt.Sprintf("%%0%dd", d), GetSnowflakeIntWithLength(int64(d)))
 }

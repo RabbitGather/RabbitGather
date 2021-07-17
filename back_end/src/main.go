@@ -3,20 +3,15 @@ package main
 import (
 	"context"
 	"errors"
-	"rabbit_gather/src/db_operator"
-	"rabbit_gather/src/neo4j_db"
-
-	//"fmt"
-	//"log"
 	"os"
 	"os/signal"
 	"rabbit_gather/src/api_server"
+	"rabbit_gather/src/db_operator"
 	"rabbit_gather/src/logger"
+	"rabbit_gather/src/neo4j_db"
 	"rabbit_gather/src/reverse_proxy_server"
 	"rabbit_gather/src/web_server"
 	"syscall"
-	// database init
-	//"rabbit_gather/src/neo4j_db"
 )
 
 var log = logger.NewLoggerWrapper("main")
@@ -25,9 +20,9 @@ func init() {
 	log.ERROR.Println("ERROR Logger Test.")
 	log.WARNING.Println("WARNING Logger Test.")
 	log.DEBUG.Println("DEBUG Logger Test.")
+	log.TempLog().Println("TEMP Logger Test.")
 }
 func main() {
-
 	log.DEBUG.Println("main start")
 	ctx, cancle := context.WithCancel(context.Background())
 	defer cancle()

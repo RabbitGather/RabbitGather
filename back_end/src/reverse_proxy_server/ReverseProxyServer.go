@@ -76,22 +76,22 @@ func (r *ReverseProxyServer) Startup(ctx context.Context, shutdownCallback util.
 		crtPool.AppendCertsFromPEM(crtFile)
 	}
 
-	r.ginEngine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
-		return fmt.Sprintf("%s |%s %d %s| %s |%s %s %s %s | %s | %s | %s\n",
-			param.TimeStamp.Format(time.RFC1123),
-			param.StatusCodeColor(),
-			param.StatusCode,
-			param.ResetColor(),
-			param.ClientIP,
-			param.MethodColor(),
-			param.Method,
-			param.ResetColor(),
-			param.Path,
-			param.Latency,
-			param.Request.UserAgent(),
-			param.ErrorMessage,
-		)
-	}))
+	//r.ginEngine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+	//	return fmt.Sprintf("%s |%s %d %s| %s |%s %s %s %s | %s | %s | %s\n",
+	//		param.TimeStamp.Format(time.RFC1123),
+	//		param.StatusCodeColor(),
+	//		param.StatusCode,
+	//		param.ResetColor(),
+	//		param.ClientIP,
+	//		param.MethodColor(),
+	//		param.Method,
+	//		param.ResetColor(),
+	//		param.Path,
+	//		param.Latency,
+	//		param.Request.UserAgent(),
+	//		param.ErrorMessage,
+	//	)
+	//}))
 
 	// 分配器掛載在根路由，轉發任何種類的請求
 	r.ginEngine.Use(r.distributor)

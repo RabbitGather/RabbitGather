@@ -49,7 +49,8 @@ func GetMysqlOperator(d DatabaseConnectionConfiguration) DBOperator {
 
 	db, err := sql.Open(Mysql, connectionString)
 	if err != nil {
-		log.ERROR.Println("Error creating connection: ", err.Error())
+		//log.ERROR.Println("Error creating connection: ", err.Error())
+		panic("Error creating connection: " + err.Error())
 	}
 	ctx := context.Background()
 	err = db.PingContext(ctx)

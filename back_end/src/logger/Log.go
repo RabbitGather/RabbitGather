@@ -19,21 +19,41 @@ const (
 	ALL  = ^MUTE
 )
 
+//const ResetColor =  "\033[0m"
+//const RedColor =  "\033[97;41m"
+
 var LogLevelMask = ALL
+var DebugColor util.ColorCode
+var WaringColor util.ColorCode
+var ErrorColor util.ColorCode
+var TempColor util.ColorCode
+var TempLogOpen bool
 
 func init() {
 	type Config struct {
 		MinLogLevel int16 `json:"log_level"`
+		DebugColor  int   `json:"debug_color"`
+		WaringColor int   `json:"waring_color"`
+		ErrorColor  int   `json:"error_color"`
+		TempColor   int   `json:"temp_color"`
+		TempLogOpen bool  `json:"temp_log_open"`
 	}
 	var config Config
 	err := util.ParseJsonConfic(&config, "config/log.config.json")
 	if err != nil {
 		panic(err.Error())
 	}
-	if config.MinLogLevel != -1 {
+	if config.MinLogLevel < -1 {
+		panic("The log level must >= -1")
+	}
+	if config.MinLogLevel >= 0 {
 		LogLevelMask = uint8(config.MinLogLevel)
 	}
-
+	DebugColor = util.ColorCode(config.DebugColor)
+	WaringColor = util.ColorCode(config.WaringColor)
+	ErrorColor = util.ColorCode(config.ErrorColor)
+	TempColor = util.ColorCode(config.TempColor)
+	TempLogOpen = config.TempLogOpen
 }
 
 type LoggerWrapper struct {
@@ -45,35 +65,48 @@ type LoggerWrapper struct {
 
 type Logger struct {
 	log.Logger
+	Color util.ColorCode
 }
 
 func (l *Logger) PrettyPrintln(v ...interface{}) {
 	l.Println(pretty.Sprint(v...))
 }
 
-const TempLogOpen = true
+func (l *Logger) SetColor(color util.ColorCode) {
+	l.Color = color
+}
+
+func (l *Logger) Printf(format string, v ...interface{}) {
+	l.Logger.Output(2, fmt.Sprintf(util.ColorSting(format, l.Color), v...))
+	//l.Logger.Printf(util.ColorSting(format,l.Color),v...)
+}
+func (l *Logger) Print(v ...interface{}) {
+	l.Logger.Output(2, util.ColorSting(fmt.Sprint(v...), l.Color))
+	//l.Logger.Print(util.ColorSting(fmt.Sprint(v...),l.Color))
+}
+func (l *Logger) Println(v ...interface{}) {
+	l.Output(2, util.ColorSting(fmt.Sprint(v...), l.Color))
+	//l.Logger.Println(util.ColorSting(fmt.Sprint(v...),l.Color))
+}
 
 func (l *LoggerWrapper) TempLog() *Logger {
 	if l.tempLogger == nil {
-		if !TempLogOpen {
-			l.tempLogger = &Logger{*log.New(io.Discard, "TEMP_LOG: ", log.Ltime|log.Ldate|log.Lshortfile|log.Lmsgprefix)}
+		var writer io.Writer
+		if TempLogOpen {
+			writer = os.Stdout
 		} else {
-			l.tempLogger = &Logger{*log.New(os.Stdout, "TEMP_LOG: ", log.Ltime|log.Ldate|log.Lshortfile|log.Lmsgprefix)}
+			writer = io.Discard
 		}
+		l.tempLogger = &Logger{*log.New(writer, util.ColorSting("TEMP_LOG: ", TempColor), log.Ltime|log.Ldate|log.Lshortfile|log.Lmsgprefix), TempColor}
 	}
 	return l.tempLogger
-	//if len(things) ==1{
-	//	l.tempLogger.Println(things[0])
-	//	return
-	//}else{
-	//	l.tempLogger.Printf(fmt.Sprintf("%s\n",fmt.Sprint(things[0])),things[1:]...)
-	//	return
-	//}
-
 }
 
 func NewLoggerWrapper(prefix string) *LoggerWrapper {
-	fmt.Printf("Cteate logger: %s\n", prefix)
+	if LogLevelMask != MUTE {
+		fmt.Printf("Cteate logger: %s\n", prefix)
+	}
+	//fmt.Println("ERER")
 	return &LoggerWrapper{
 		ERROR:   CreateErrorLogger(prefix),
 		WARNING: CreateWaringLogger(prefix),
@@ -92,7 +125,7 @@ func CreateErrorLogger(prefix string) *Logger {
 	} else {
 		writer = io.MultiWriter(outputFile, os.Stdout)
 	}
-	return &Logger{*log.New(writer, fmt.Sprintf("%s - ERROR: ", prefix), log.Lmicroseconds|log.Ldate|log.Llongfile|log.Lmsgprefix)}
+	return &Logger{*log.New(writer, fmt.Sprintf(util.ColorSting("ERROR %s: ", ErrorColor), prefix), log.Lmicroseconds|log.Ldate|log.Llongfile|log.Lmsgprefix), ErrorColor}
 }
 func CreateWaringLogger(prefix string) *Logger {
 	outputFile, err := os.OpenFile(fmt.Sprintf("../log/warning_rabbit_gather_%s.log", prefix), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -105,7 +138,7 @@ func CreateWaringLogger(prefix string) *Logger {
 	} else {
 		writer = io.MultiWriter(outputFile, os.Stdout)
 	}
-	return &Logger{*log.New(writer, fmt.Sprintf("%s - WARNING: ", prefix), log.Ltime|log.Ldate|log.Lshortfile|log.Lmsgprefix)}
+	return &Logger{*log.New(writer, fmt.Sprintf(util.ColorSting("WARNING %s: ", WaringColor), prefix), log.Ltime|log.Ldate|log.Lshortfile|log.Lmsgprefix), WaringColor}
 
 }
 func CreateDebugLogger(prefix string) *Logger {
@@ -115,5 +148,5 @@ func CreateDebugLogger(prefix string) *Logger {
 	} else {
 		writer = os.Stdout
 	}
-	return &Logger{*log.New(writer, fmt.Sprintf("%s - DEBUG: ", prefix), log.Lmicroseconds|log.Lshortfile|log.Lmsgprefix)}
+	return &Logger{*log.New(writer, fmt.Sprintf(util.ColorSting("DEBUG %s: ", DebugColor), prefix), log.Lmicroseconds|log.Lshortfile|log.Lmsgprefix), DebugColor}
 }

@@ -100,8 +100,10 @@ func init() {
 	config := cors.DefaultConfig()
 	//config.AllowOrigins = []string{"http://localhost:8080"}
 	//config.AllowMethods = []string{"POST"}
-	config.AllowAllOrigins = true
-	//config.AllowOrigins = []string{"http://localhost:8081","https://localhost:8081"}
+	//if util.DebugMode{
+	//	config.AllowAllOrigins = true // debug
+	//}
+	config.AllowOrigins = []string{"http://meowalien.com:443"}
 	config.AllowMethods = []string{"GET", "POST"}
 	corsHandler = cors.New(config)
 }
@@ -113,9 +115,10 @@ func (w *APIServer) MountService(ctx context.Context) {
 	w.useMiddleware(corsHandler)
 
 	userAccount := service.AccountManagement{}
-	w.HandlePost("/login", userAccount.LoginHandler, auth.Public)
+
+	w.HandlePost("/login", userAccount.LoginHandler, auth.NoStatus)
 	w.HandlePost("/signup", userAccount.SignupHandler, auth.WaitVerificationCode)
-	w.HandlePost("/sent_verification_code", userAccount.SentVerificationCodeHandler, auth.Public)
+	w.HandlePost("/sent_verification_code", userAccount.SentVerificationCodeHandler, auth.NoStatus)
 
 	articleManagement := service.ArticleManagement{}
 	w.HandlePost("/post_article", articleManagement.PostArticleHandler, auth.Login)
@@ -130,85 +133,129 @@ func (w *APIServer) useMiddleware(middleware func(c *gin.Context)) {
 	w.ginEngine.Use(middleware)
 }
 
-var pathPermissionMapPost = map[string]auth.APIPermissionBitmask{}
-var pathPermissionMapGet = map[string]auth.APIPermissionBitmask{}
-
-func (w *APIServer) HandlePost(path string, handler gin.HandlerFunc, permissionCode auth.APIPermissionBitmask) {
-	pathPermissionMapPost[path] = permissionCode
+func (w *APIServer) HandlePost(path string, handler gin.HandlerFunc, permissionCode auth.StatusBitmask) {
+	pathStatusRequirementMap[POST][path] = permissionCode
 	w.ginEngine.POST(path, handler)
 }
 
-func (w *APIServer) HandleGet(path string, handler func(c *gin.Context), permissionCode auth.APIPermissionBitmask) {
-	pathPermissionMapGet[path] = permissionCode
+func (w *APIServer) HandleGet(path string, handler func(c *gin.Context), permissionCode auth.StatusBitmask) {
+	pathStatusRequirementMap[GET][path] = permissionCode
 	w.ginEngine.GET(path, handler)
 }
 
+// check if client can access the API
 func (w *APIServer) permissionCheck(c *gin.Context) {
-	fillPath := c.FullPath()
-	if !needPermissionCheck(c.Request.Method, fillPath) {
+	fullPath := c.FullPath()
+	statusBitmask, exist := w.getStatusRequirement(HttpMethod(c.Request.Method), fullPath)
+	if !exist {
+		panic("Error when getStatusRequirement")
+	}
+	// this should not happen
+	if statusBitmask == auth.Reject {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "something got wrong."})
+		log.ERROR.Printf("Got Reject when getStatusRequirement")
+		return
+	}
+	// if the path doesn't need status to access
+	if statusBitmask == auth.NoStatus {
 		c.Next()
 		return
 	}
 
-	tokenRawString := c.GetHeader(auth.TokenHeaderKey)
+	tokenRawString := c.GetHeader(util.TokenHeaderKey)
 	if tokenRawString == "" {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "no token"})
 		log.DEBUG.Println("no token: ", pretty.Sprint(c.Request.Header))
 		return
 	}
-	var uc auth.PermissionClaims
-	token, err := auth.ParseToken(tokenRawString, &uc)
+
+	var utilityClaims = auth.UtilityClaims{}
+	err := auth.ParseToken(tokenRawString, utilityClaims)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token not valid"})
 		log.DEBUG.Printf("ParseToken error : %s", err.Error())
 		return
 	}
-	if !token.Valid {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token not valid"})
-		log.DEBUG.Printf("token not valid: %s", pretty.Sprint(*token))
+
+	var statusClaims auth.StatusClaims
+	err = utilityClaims.MappingClaim(&statusClaims)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token valid but no statusClaims"})
+		log.DEBUG.Printf("token valid but no statusClaims")
 		return
 	}
 
-	userClaims, ok := token.Claims.(*auth.PermissionClaims)
-	if !ok {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "token not valid"})
-		log.ERROR.Printf("token Claims not type of PermissionClaims: %s", pretty.Sprint(*userClaims))
-		return
-	}
-
-	APIPermissionCode := getAPIPermissionCodeWithServePath(fillPath)
-	if !auth.BitMaskCheck(APIPermissionCode, userClaims.PermissionBitmask) {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "this user don't have permission to access this api"})
-		log.DEBUG.Printf("this user don't have permission to access this api: %s", pretty.Sprint(*userClaims))
+	if !auth.BitMaskCheck(statusBitmask, statusClaims.StatusBitmask) {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "you do not have permission to access this api"})
+		log.DEBUG.Printf("reject access to: %s Claims: %s", fullPath, pretty.Sprint(utilityClaims))
 		return
 	}
 	c.Next()
 	return
 }
 
-func getAPIPermissionCodeWithServePath(path string) auth.APIPermissionBitmask {
-	return pathPermissionMapPost[path]
+type HttpMethod string
+
+const (
+	GET    HttpMethod = "GET"
+	POST   HttpMethod = "POST"
+	PATCH  HttpMethod = "PATCH"
+	DELETE HttpMethod = "DELETE"
+	PUT    HttpMethod = "PUT"
+)
+
+var pathStatusRequirementMap = map[HttpMethod]map[string]auth.StatusBitmask{
+	GET:    {},
+	POST:   {},
+	PUT:    {},
+	PATCH:  {},
+	DELETE: {},
 }
 
-func needPermissionCheck(method, path string) bool {
-	exist := false
-	permissionBitMask := auth.Admin
+//var pathStatusRequirementMap_RWMutex = sync.RWMutex{}
+
+func (w *APIServer) getStatusRequirement(method HttpMethod, path string) (auth.StatusBitmask, bool) {
 	switch method {
-	//an empty string means GET.
-	case "":
-		permissionBitMask, exist = pathPermissionMapGet[path]
-	case "GET":
-		permissionBitMask, exist = pathPermissionMapGet[path]
-	case "POST":
-		permissionBitMask, exist = pathPermissionMapPost[path]
+	case GET:
+	case POST:
+	case PUT:
+	case PATCH:
+	case DELETE:
 	default:
-		log.ERROR.Println("unexpected method: " + method)
+		log.ERROR.Println("Not supported http method")
+		return auth.Reject, true
 	}
-	if exist {
-		//log.TempLog("method, path: %s,%s",method, path)
-		//log.TempLog("permissionBitMask: %d ",permissionBitMask)
-		return permissionBitMask != auth.Public
-	} else {
-		return false
-	}
+	p, exist := pathStatusRequirementMap[method][path]
+	return p, exist
 }
+
+//func getAPIStatusRequiredWithPath(path string) auth.StatusBitmask {
+//	return pathPermissionMapPost[path]
+//}
+
+// Check if this path need status to access
+//func needPermissionCheck(method, path string) bool {
+//	exist := false
+//	var status auth.StatusBitmask
+//	switch method {
+//	//an empty string means GET.
+//	case "":
+//		permissionBitMask, exist = pathPermissionMapGet[path]
+//	case "GET":
+//		permissionBitMask, exist = pathPermissionMapGet[path]
+//	case "POST":
+//		permissionBitMask, exist = pathPermissionMapPost[path]
+//	default:
+//		log.ERROR.Println("unexpected method: " + method)
+//		return false
+//	}
+//	if !exist {
+//		//log.ERROR.Println("")
+//		return false
+//		//log.TempLog("method, path: %s,%s",method, path)
+//		//log.TempLog("permissionBitMask: %d ",permissionBitMask)
+//		//return permissionBitMask != auth.AllStatus
+//	} else {
+//		return false
+//	}
+//}
