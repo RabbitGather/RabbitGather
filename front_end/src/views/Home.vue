@@ -76,8 +76,8 @@
     <!-- {{ currentPoint }} -->
     <RadarRadiusRuler
       @point-update="RulerPointUpdate"
-      :min="1"
-      :max="100"
+      :min="minRadius"
+      :max="maxRadius"
       class="
         RadarRadiusRuler
         flex-row
@@ -114,10 +114,12 @@ import ControlBox from "@/components/ControlBox.vue";
   },
 })
 export default class Home extends Vue {
-  private currentPoint = 0;
+  private currentPoint =0;
+  maxRadius = 100;
+  minRadius = 0;
   RulerPointUpdate(val: number) {
     // console.log("VAL: " + val);
-    this.currentPoint = val;
+    this.currentPoint = (val / 100) * 100 ;
   }
 }
 </script>

@@ -11,7 +11,7 @@
     v-on:dragscrollend="scrollboxcontainer_dragscrollend"
   >
     <div class="Triangle" ref="triangle"></div>
-    <div class="bg-gray-400 h-full w-max flex flex-row " ref="scrollbox">
+    <div class="bg-gray-400 h-full w-max flex flex-row" ref="scrollbox">
       <div class="" style="width: 50vw" v-bind:value="min"></div>
       <div
         class="self-end w-auto flex flex-row items-baseline"
@@ -116,41 +116,54 @@ export default class RadarRadiusRuler extends Vue.with(Props) {
   mounted() {
     scrollboxcontainer = this.$refs.scrollboxcontainer as HTMLDivElement;
     triangle = this.$refs.triangle as HTMLDivElement;
-    // scrollboxcontainer.scrollLeft += scrollboxcontainer.offsetWidth;
     let thecenterBar = scrollboxcontainer.querySelector(
       "[value='" + this.max / 2 + "']"
     ) as HTMLDivElement;
     console.log(thecenterBar.offsetLeft);
     console.log(scrollboxcontainer.scrollLeft);
+    console.log(
+      "scrollboxcontainer.offsetHeight:",
+      scrollboxcontainer.offsetHeight
+    );
+    let rect = scrollboxcontainer.getBoundingClientRect();
+    console.log(
+      "scrollboxcontainer.clientHeight:",
+      scrollboxcontainer.getBoundingClientRect().y,
+      rect.top,
+      rect.right,
+      rect.bottom,
+      rect.left
+    );
+    console.log(
+      "scrollboxcontainer.scrollHeight:",
+      scrollboxcontainer.scrollHeight
+    );
+    console.log("window.innerHeight:", window.innerHeight);
+    // scrollboxcontainer.offsetWidth
     scrollboxcontainer.scrollLeft =
-      thecenterBar.offsetLeft - window.innerWidth / 2 + 3;
+      thecenterBar.offsetLeft - scrollboxcontainer.offsetWidth / 2 + 3;
     this.$emit("point-update", this.max / 2);
   }
-  // windowResize() {
-  //   // console.log("windowResize");
-  //   helfWindow = window.innerWidth / 2;
-  //   // scrollboxcontainer = this.$refs.scrollboxcontainer as HTMLDivElement;
-  //   // triangle = this.$refs.triangle as HTMLDivElement;
-  // }
+
   scrollboxcontainer_dragscrollstart() {}
   scrollboxcontainer_dragscrollmove(deltaX: number) {
     this.updatePoint();
   }
-  // remToPx(rem: number): number {
-  //   return rem * htmlfontsize;
-  // }
 
   updatePoint() {
     let thisBar = document.elementsFromPoint(
       triangle.offsetLeft + remToPx(0.36),
-      window.innerHeight - 5
+      scrollboxcontainer.getBoundingClientRect().bottom - 5
+      // window.innerHeight - 5
     )[0] as HTMLDivElement;
 
     gape =
-      (thisBar.offsetLeft == 0 ? window.innerWidth / 2 : thisBar.offsetLeft) +
-      remToPx(0.5);
+      (thisBar.offsetLeft == 0
+        ? scrollboxcontainer.offsetWidth / 2
+        : thisBar.offsetLeft) + remToPx(0.5);
 
-    current = scrollboxcontainer.scrollLeft + window.innerWidth / 2 - 3;
+    current =
+      scrollboxcontainer.scrollLeft + scrollboxcontainer.offsetWidth / 2 - 3;
     gapeans = current > gape;
     // if (thisBar === targitBar) {
     //   // updated = false;
