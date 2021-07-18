@@ -1,7 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"github.com/kr/pretty"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"rabbit_gather/src/neo4j_db"
 	"rabbit_gather/util"
 )
 
@@ -61,8 +63,82 @@ var LogLevelMask = ALL
 //}
 
 func main() {
+
+	type PositionStruct struct {
+		Latitude  float32 `json:"latitude"`
+		Longitude float32 `json:"longitude"`
+	}
+
+	type SearchArticleRequest struct {
+		Position PositionStruct `json:"position"`
+		Radius   int            `json:"radius"`
+	}
+	searchArticleRequest := SearchArticleRequest{
+		Position: PositionStruct{
+			Latitude:  54.44865417480469,
+			Longitude: 145.48887634277344,
+		},
+		Radius: 99999999999,
+	}
+	//type Props struct {
+	//	ID string `json:"id"`
+	//	Title string `json:"title"`
+	//	Content string `json:"content"`
+	//	Timestamp int64 `json:"timestamp"`
+	//}
+	//type Labels struct {
+	//
+	//}
+	//type Article struct {
+	//	Id int
+	//	Labels Labels
+	//	Props Props
+	//}
+	driver := neo4j_db.GetDriver()
+	session := driver.NewSession(neo4j.SessionConfig{})
+	defer session.Close()
+	result, err := session.Run(util.GetFileStoredPlainText("sql/search_article_with_radius.cyp"),
+		map[string]interface{}{
+			"longitude": searchArticleRequest.Position.Longitude,
+			"latitude":  searchArticleRequest.Position.Latitude,
+			"radius":    searchArticleRequest.Radius,
+		},
+	)
+	if err != nil {
+		panic(err.Error())
+	}
+	for result.Next() {
+		record := result.Record()
+		s, _ := record.Get("article")
+		pretty.Println(s.(neo4j.Node).Props)
+	}
+	//res, err := neo4j_db.RunScriptWithScriptFile(
+	//	"sql/search_article_with_radius.cyp",
+	//	map[string]interface{}{
+	//		"longitude":  searchArticleRequest.Position.Longitude,
+	//		"latitude":     searchArticleRequest.Position.Latitude,
+	//		"radius":searchArticleRequest.Radius,
+	//	})
+	//if err != nil {
+	//	panic(err.Error())
+	//}
+	//fmt.Println("res: ",res)
+	//
+	//for res.Next() {
+	//	record := res.Record()
+	//fmt.Println("record: ",record)
+	//	if value, ok := record.Get("Article"); ok {
+	//		fmt.Println(value)
+	//	}
+	//	if value, ok := record.Get("properties"); ok {
+	//		fmt.Println(value)
+	//	}
+	//}
+	//a := claims.StatusClaims{StatusBitmask: status_bitmask.WaitVerificationCode}
+	//fmt.Println(a.Valid())
+
 	//m := map[string]int{}
-	fmt.Println(util.NewVerificationCodeWithLength(4))
+	//fmt.Println(util.NewVerificationCodeWithLength(4))
 	//utClaims := auth.UtilityClaims{
 	//	auth.StatusClaimsName: auth.StatusClaims{
 	//		StatusBitmask: auth.Login,

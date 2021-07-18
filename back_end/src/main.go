@@ -5,12 +5,12 @@ import (
 	"errors"
 	"os"
 	"os/signal"
-	"rabbit_gather/src/api_server"
 	"rabbit_gather/src/db_operator"
 	"rabbit_gather/src/logger"
 	"rabbit_gather/src/neo4j_db"
 	"rabbit_gather/src/reverse_proxy_server"
-	"rabbit_gather/src/web_server"
+	"rabbit_gather/src/server/api_server"
+	"rabbit_gather/src/server/web_server"
 	"syscall"
 )
 

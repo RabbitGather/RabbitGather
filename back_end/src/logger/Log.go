@@ -85,7 +85,7 @@ func (l *Logger) Print(v ...interface{}) {
 	//l.Logger.Print(util.ColorSting(fmt.Sprint(v...),l.Color))
 }
 func (l *Logger) Println(v ...interface{}) {
-	l.Output(2, util.ColorSting(fmt.Sprint(v...), l.Color))
+	l.Output(2, util.ColorSting(pretty.Sprint(v...), l.Color))
 	//l.Logger.Println(util.ColorSting(fmt.Sprint(v...),l.Color))
 }
 
