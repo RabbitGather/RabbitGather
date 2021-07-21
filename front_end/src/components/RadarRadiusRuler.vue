@@ -119,12 +119,12 @@ export default class RadarRadiusRuler extends Vue.with(Props) {
     let thecenterBar = scrollboxcontainer.querySelector(
       "[value='" + this.max / 2 + "']"
     ) as HTMLDivElement;
-    console.log(thecenterBar.offsetLeft);
-    console.log(scrollboxcontainer.scrollLeft);
-    console.log(
-      "scrollboxcontainer.offsetHeight:",
-      scrollboxcontainer.offsetHeight
-    );
+    // console.log(thecenterBar.offsetLeft);
+    // console.log(scrollboxcontainer.scrollLeft);
+    // console.log(
+    //   "scrollboxcontainer.offsetHeight:",
+    //   scrollboxcontainer.offsetHeight
+    // );
     let rect = scrollboxcontainer.getBoundingClientRect();
     console.log(
       "scrollboxcontainer.clientHeight:",

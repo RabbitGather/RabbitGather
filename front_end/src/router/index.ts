@@ -1,50 +1,13 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import Home from "../views/Home.vue";
 import RealTimeChatBox from "../views/RealTimeChatBox.vue";
+import HomeView from "../views/HomeView.vue";
+import MapContainer from "../views/MapContainer.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
-    path: "/",
-    name: "Home",
-    component: Home,
-    meta: {
-      title: "RabbitGather",
-      metaTags: [
-        {
-          name: "description",
-          content: "RabbitGather Main page",
-        },
-        {
-          property: "og:description",
-          content: "RabbitGather Main page",
-        },
-      ],
-    },
-  },
-  {
-    path: "/chat",
-    name: "RealTimeChatBox",
-    component: RealTimeChatBox,
-    meta: {
-      title: "RabbitGather - RealTimeChatBox",
-      metaTags: [
-        {
-          name: "description",
-          content: "RabbitGather - RealTimeChatBox",
-        },
-        {
-          property: "og:description",
-          content: "RabbitGather - RealTimeChatBox",
-        },
-      ],
-    },
-  },
-  {
     path: "/login",
     name: "Login",
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
     component: () =>
       import(/* webpackChunkName: "about" */ "../views/Login.vue"),
     meta: {
@@ -61,6 +24,66 @@ const routes: Array<RouteRecordRaw> = [
       ],
     },
   },
+  {
+    path: "/",
+    name: "Home",
+    component: HomeView,
+    children: [
+      {
+        path: "",
+        component: MapContainer,
+        meta: {
+          title: "RabbitGather",
+          metaTags: [
+            {
+              name: "description",
+              content: "RabbitGather Main page",
+            },
+            {
+              property: "og:description",
+              content: "RabbitGather Main page",
+            },
+          ],
+        },
+      },
+      {
+        path: "chat",
+        component: RealTimeChatBox,
+        name: "RealTimeChatBox",
+        meta: {
+          title: "RabbitGather - RealTimeChatBox",
+          metaTags: [
+            {
+              name: "description",
+              content: "RabbitGather - RealTimeChatBox",
+            },
+            {
+              property: "og:description",
+              content: "RabbitGather - RealTimeChatBox",
+            },
+          ],
+        },
+      },
+    ],
+  },
+  // {
+  //   path: "/chat",
+  //   name: "RealTimeChatBox",
+  //   component: RealTimeChatBox,
+  //   meta: {
+  //     title: "RabbitGather - RealTimeChatBox",
+  //     metaTags: [
+  //       {
+  //         name: "description",
+  //         content: "RabbitGather - RealTimeChatBox",
+  //       },
+  //       {
+  //         property: "og:description",
+  //         content: "RabbitGather - RealTimeChatBox",
+  //       },
+  //     ],
+  //   },
+  // },
 ];
 
 const router = createRouter({

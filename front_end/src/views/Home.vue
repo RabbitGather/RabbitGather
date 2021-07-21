@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="HomeView"
     class="EverythingWrapper flex flex-col items-start relative w-full h-full"
   >
     <div
@@ -51,8 +52,7 @@
           "
         ></StatusBar>
         <MainContact
-          :radius="currentPoint"
-          :magnification="6"
+          :radius="CircleRadiusPercentage"
           class="MainContact"
         ></MainContact>
       </div>
@@ -73,11 +73,10 @@
       >
       </ControlBox>
     </div>
-    <!-- {{ currentPoint }} -->
     <RadarRadiusRuler
-      @point-update="RulerPointUpdate"
-      :min="minRadius"
-      :max="maxRadius"
+      @point-update="SearchRadiusUpdate"
+      :min="MinRadius"
+      :max="MaxRadius"
       class="
         RadarRadiusRuler
         flex-row
@@ -104,6 +103,11 @@ import PeerChat from "@/components/PeerChat.vue";
 import MainContact from "@/components/MainContact.vue";
 import StatusBar from "@/components/StatusBar.vue";
 import ControlBox from "@/components/ControlBox.vue";
+import axios from "axios";
+import { useStore } from "@/store";
+import { UserSetting, AuthGetterTypes } from "@/store/auth/getters";
+const store = useStore();
+
 @Options({
   components: {
     RadarRadiusRuler,
@@ -113,13 +117,50 @@ import ControlBox from "@/components/ControlBox.vue";
     ControlBox,
   },
 })
+/*
+view 從後端拉資料，將資料塞到組件內顯示
+*/
 export default class Home extends Vue {
-  private currentPoint =0;
-  maxRadius = 100;
-  minRadius = 0;
-  RulerPointUpdate(val: number) {
-    // console.log("VAL: " + val);
-    this.currentPoint = (val / 100) * 100 ;
+  // bind on MainContact
+  CircleRadiusPercentage = 0;
+
+  // bind on RadarRadiusRuler
+  MaxRadius = 0;
+  MinRadius = 0;
+  UserName = 0;
+  // homeView!: HTMLDivElement;
+  done = false;
+  beforeMount() {
+    // console.log(
+    //   "AuthGetterTypes.isAuthenticated: ",
+    //   useStore().getters[AuthGetterTypes.isAuthenticated]
+    // );
+    // 取得使用者權限相關設定
+    let setting: UserSetting = store.getters[AuthGetterTypes.UserSetting];
+    this.MaxRadius = setting.RadiusRange.Max;
+    this.MinRadius = setting.RadiusRange.Min;
+  }
+  mounted() {
+    console.log("--- mounted ---");
+    // this.homeView = this.$refs.HomeView as HTMLDivElement;
+    // console.log("this.HomeView: ", this.homeView);
+    this.done = true;
+  }
+
+  SearchRadiusUpdate(newRadius: number) {
+    if (!this.done) {
+      return;
+    }
+    console.log("SearchRadiusUpdate");
+    this.UpdateCircleRadius((newRadius / this.MaxRadius) * 100);
+  }
+
+  UpdateCircleRadius(newRadiusPercentage: number) {
+    if (!this.done) {
+      return;
+    }
+    console.log("New Radius: ", newRadiusPercentage);
+    this.CircleRadiusPercentage = newRadiusPercentage;
   }
 }
 </script>

@@ -13,8 +13,8 @@ export type AuthStore = GenerateStoreType<
   AuthActions
 >;
 export const AuthModule: Module<AuthState, RootState> = {
-  state,
-  mutations,
-  actions,
-  getters,
+  state:state,
+  mutations:mutations,
+  actions:actions,
+  getters:getters,
 };
