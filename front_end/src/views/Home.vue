@@ -98,7 +98,7 @@
 
 <script lang="ts" >
 import { Options, Vue } from "vue-class-component";
-import RadarRadiusRuler from "@/components/RadarRadiusRuler.vue";
+import RadarRadiusRuler from "@/components/Ruler.vue";
 import PeerChat from "@/components/PeerChat.vue";
 import MainContact from "@/components/MainContact.vue";
 import StatusBar from "@/components/StatusBar.vue";

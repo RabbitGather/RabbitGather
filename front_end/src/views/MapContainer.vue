@@ -1,6 +1,7 @@
 <template>
   <div class="MainContainer w-full h-full bg-blue-500 flex flex-col">
     <Map
+      ref="Map"
       class="
         Map
         bg-purple-400
@@ -19,9 +20,10 @@
         flex-grow
       "
     >
-      <Radar class="Radar w-20 h-20"></Radar>
     </Map>
-    <Rular
+    <Ruler
+      ref="Ruler"
+      @RadiusUpdate="RadiusUpdate"
       class="
         bg-yellow-400
         RadarRadiusRuler
@@ -37,20 +39,46 @@
         self-stretch
         flex-grow-0
       "
-    ></Rular>
+    ></Ruler>
   </div>
 </template>
 
 <script lang="ts" >
 import { Options, Vue } from "vue-class-component";
 import StatusBar from "@/components/Map.vue";
-import Radar from "@/components/Radar.vue";
-import RadarRadiusRuler from "@/components/RadarRadiusRuler.vue";
+import Ruler from "@/components/Ruler.vue";
+import Map from "@/components/Map.vue";
+import store, { AllActionTypes } from "@/store";
+import { UserSettings } from "@/store/app";
 
 @Options({
-  components: { StatusBar, Radar, RadarRadiusRuler },
+  components: { StatusBar, Map, Ruler },
 })
-export default class MainContainer extends Vue {}
+export default class MainContainer extends Vue {
+  beforeCreate() {
+    console.log("MainContainer beforeCreate");
+    store
+      .dispatch(AllActionTypes.APP.GetUserInfo)
+      .then((userinfo: UserSettings) => {
+        let maxRadius = userinfo.radaRadius.MaxRadius;
+        let minRadius = userinfo.radaRadius.MinRadius;
+        (this.$refs.Ruler as Ruler).Init(maxRadius, minRadius);
+      });
+  }
+
+  CurrentRadius = 0;
+  NewRadius(radius: number) {
+    this.CurrentRadius = radius;
+  }
+  RadiusUpdate(newRadius: number) {
+    this.UpdateMap(newRadius);
+  }
+
+  UpdateMap(newRadius: number) {
+    // console.log("newRadius: ", newRadius);
+    (this.$refs.Map as Map).UpdateRadius(newRadius);
+  }
+}
 </script>
 
 <style scoped>
