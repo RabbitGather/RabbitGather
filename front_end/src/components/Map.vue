@@ -3,10 +3,10 @@
     <!-- <Circle class="Circle" ref="Circle"></Circle> -->
     <div
       id="openmap"
-      class="bg-red-500 w-full max-h-full overflow-hidden"
+      class="bg-red-500 w-full flex-grow overflow-scroll"
       style=""
     >
-      <div class="bg-yellow-200" style="width: 2000px; height: 2000px"></div>
+      <div class="bg-yellow-500" style="width: 2000px; height: 2000px"></div>
     </div>
   </div>
 </template>
@@ -15,6 +15,7 @@
 import { Options, Vue } from "vue-class-component";
 import Circle from "@/components/Circle.vue";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 @Options({
   components: { Circle },
@@ -29,10 +30,8 @@ export default class Map extends Vue {
     this.mapDivElement = this.$refs.MapDivElement as HTMLDivElement;
     this.maxCircleHeight = this.mapDivElement.offsetHeight * 0.9;
     this.maxCircleWidth = this.mapDivElement.offsetWidth * 0.9;
-    // var map = L.map("openmap", {
-    //   center: [51.505, -0.09],
-    //   zoom: 13,
-    // });
+
+    // var map = L.map("openmap").setView([51.505, -0.09], 13);
     // L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     //   attribution:
     //     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -66,4 +65,11 @@ export default class Map extends Vue {
   width: 100%;
   height: 100%;
 } */
+.inner-content {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
 </style>

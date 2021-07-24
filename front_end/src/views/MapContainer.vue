@@ -1,12 +1,14 @@
 <template>
   <div class="MapContainer bg-blue-500 flex flex-col">
-    <Map ref="Map" class="Map bg-purple-400 flex-grow"> </Map>
+    <Map ref="Map" class="Map bg-purple-400 w-full flex-grow flex flex-col min-h-0"> </Map>
+
     <Ruler
       ref="Ruler"
       @RadiusUpdate="RadiusUpdate"
-      class="h-14 flex-shrink-0  flex-none"
+      class="h-14 flex-none"
     ></Ruler>
   </div>
+  <!-- </div> -->
 </template>
 
 <script lang="ts" >

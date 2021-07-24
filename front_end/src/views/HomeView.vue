@@ -1,21 +1,17 @@
 <template>
   <div
-    class="HoneView flex flex-col bg-black h-full w-full max-h-full max-w-full"
+    class="
+      HoneView
+      flex flex-col
+      bg-black
+      h-full
+      w-full
+      max-h-full max-w-full
+      min-h-full min-w-full
+    "
   >
-    <StatusBar
-      class="
-        StatusBar
-        static
-        w-full
-        h-11
-        left-0
-        top-0
-        flex-none
-        order-none
-        flex-shrink-0
-      "
-    ></StatusBar>
-    <router-view class="bg-green-300 flex-grow max-w-full max-h-full" />
+    <StatusBar class="StatusBar w-full h-11 left-0 top-0 flex-none"></StatusBar>
+    <router-view class="bg-green-300 flex-grow" />
   </div>
 </template>
 
