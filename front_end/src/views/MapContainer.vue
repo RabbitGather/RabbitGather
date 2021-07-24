@@ -1,10 +1,10 @@
 <template>
-  <div class="MainContainer bg-blue-500 flex flex-col">
+  <div class="MapContainer bg-blue-500 flex flex-col">
     <Map ref="Map" class="Map bg-purple-400 flex-grow"> </Map>
     <Ruler
       ref="Ruler"
       @RadiusUpdate="RadiusUpdate"
-      class="h-14 flex-shrink-0"
+      class="h-14 flex-shrink-0  flex-none"
     ></Ruler>
   </div>
 </template>
@@ -20,9 +20,9 @@ import { UserSettings } from "@/store/app";
 @Options({
   components: { StatusBar, Map, Ruler },
 })
-export default class MainContainer extends Vue {
+export default class MapContainer extends Vue {
   beforeCreate() {
-    console.log("MainContainer beforeCreate");
+    console.log("MapContainer beforeCreate");
     store
       .dispatch(AllActionTypes.APP.GetUserInfo)
       .then((userinfo: UserSettings) => {

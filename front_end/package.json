@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve & watch",
+    "serve": "vue-cli-service serve",
     "build": "vue-cli-service build --dest ../back_end/public/web/",
     "test:unit": "vue-cli-service test:unit",
     "test:e2e": "vue-cli-service test:e2e",
     "lint": "vue-cli-service lint"
-   },
+  },
   "dependencies": {
     "@tailwindcss/postcss7-compat": "^2.0.2",
     "@types/geojson": "^7946.0.8",

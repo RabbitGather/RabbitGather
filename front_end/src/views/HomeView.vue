@@ -12,8 +12,7 @@
         top-0
         flex-none
         order-none
-        self-stretch
-        flex-shrink-0 flex-grow-0
+        flex-shrink-0
       "
     ></StatusBar>
     <router-view class="bg-green-300 flex-grow max-w-full max-h-full" />

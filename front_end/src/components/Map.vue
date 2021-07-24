@@ -1,7 +1,11 @@
 <template>
-  <div ref="MapDivElement" id="Map">
+  <div ref="MapDivElement" id="Map" class="">
     <!-- <Circle class="Circle" ref="Circle"></Circle> -->
-    <div id="openmap" class="bg-red-500 w-full h-full max-h-full overflow-hidden  " style="">
+    <div
+      id="openmap"
+      class="bg-red-500 w-full max-h-full overflow-hidden"
+      style=""
+    >
       <div class="bg-yellow-200" style="width: 2000px; height: 2000px"></div>
     </div>
   </div>
