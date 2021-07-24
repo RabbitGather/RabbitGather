@@ -1,5 +1,7 @@
 <template>
-  <div class="HoneView flex flex-col bg-black h-full w-full">
+  <div
+    class="HoneView flex flex-col bg-black h-full w-full max-h-full max-w-full"
+  >
     <StatusBar
       class="
         StatusBar
@@ -11,10 +13,10 @@
         flex-none
         order-none
         self-stretch
-        flex-grow-0
+        flex-shrink-0 flex-grow-0
       "
     ></StatusBar>
-    <router-view class="MainContant bg-green-300 flex-grow w-full" />
+    <router-view class="bg-green-300 flex-grow max-w-full max-h-full" />
   </div>
 </template>
 

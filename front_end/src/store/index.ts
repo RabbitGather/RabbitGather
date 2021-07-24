@@ -26,7 +26,7 @@ export const AllMutationTypes = {
 
 export type Store = AuthStore & AppStore;
 
-export const store = createStore({
+const store = createStore({
   plugins:
     process.env.NODE_ENV === "production"
       ? [createPersistedState()]

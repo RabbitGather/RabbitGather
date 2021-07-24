@@ -1,51 +1,17 @@
 <template>
-  <div class="MainContainer w-full h-full bg-blue-500 flex flex-col">
-    <Map
-      ref="Map"
-      class="
-        Map
-        bg-purple-400
-        flex flex-col
-        items-center
-        justify-center
-        static
-        w-full
-        h-auto
-        left-0
-        top-0
-        overflow-hidden
-        flex-none
-        order-1
-        self-stretch
-        flex-grow
-      "
-    >
-    </Map>
+  <div class="MainContainer bg-blue-500 flex flex-col">
+    <Map ref="Map" class="Map bg-purple-400 flex-grow"> </Map>
     <Ruler
       ref="Ruler"
       @RadiusUpdate="RadiusUpdate"
-      class="
-        bg-yellow-400
-        RadarRadiusRuler
-        flex-row
-        static
-        w-full
-        h-14
-        left-0
-        bottom-0
-        overflow-hidden
-        flex-none
-        order-1
-        self-stretch
-        flex-grow-0
-      "
+      class="h-14 flex-shrink-0"
     ></Ruler>
   </div>
 </template>
 
 <script lang="ts" >
 import { Options, Vue } from "vue-class-component";
-import StatusBar from "@/components/Map.vue";
+import StatusBar from "@/components/StatusBar.vue";
 import Ruler from "@/components/Ruler.vue";
 import Map from "@/components/Map.vue";
 import store, { AllActionTypes } from "@/store";
@@ -75,7 +41,7 @@ export default class MainContainer extends Vue {
   }
 
   UpdateMap(newRadius: number) {
-    // console.log("newRadius: ", newRadius);
+    // console.log("newRadius: ", newRadius)
     (this.$refs.Map as Map).UpdateRadius(newRadius);
   }
 }

@@ -1,10 +1,11 @@
 module.exports = {
-  purge: { content: ["./public/**/*.html", "./src/**/*.vue"] },
+  mode: "jit",
+  purge: { enabled: true, content: ["./public/**/*.html", "./src/**/*.vue"] },
   darkMode: false, // or 'media' or 'class'
   theme: {
     extend: {
       shadow: {
-        up: "0px 4px 4px rgba(0, 0, 0, 0.25)",
+        up: "0 4px 4px 0 rgba(0, 0, 0, 0.25)",
       },
     },
   },
