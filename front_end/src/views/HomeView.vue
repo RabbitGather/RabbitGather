@@ -4,14 +4,14 @@
       HoneView
       flex flex-col
       bg-black
-      h-full
-      w-full
-      max-h-full max-w-full
-      min-h-full min-w-full
+      h-screen
+      w-screen
+      max-h-screen max-w-screen
+      min-h-screen min-w-screen
     "
   >
     <StatusBar class="StatusBar w-full h-11 left-0 top-0 flex-none"></StatusBar>
-    <router-view class="bg-green-300 flex-grow" />
+    <router-view class="bg-green-300 flex-grow max-w-full" />
   </div>
 </template>
 

@@ -34,7 +34,7 @@ import { Options, Vue } from "vue-class-component";
 import { useStore, AllMutationTypes } from "@/store";
 import routes from "@/router";
 import axios from "axios";
-import { PositionClass, PositionPoint } from "../global/Positions";
+import { PositionPoint } from "../global/Positions";
 import { sleep } from "@/global/Util";
 type LoginResponse = {
   ok: boolean;
@@ -58,16 +58,16 @@ export default class LoginPage extends Vue {
       this.resMessage = err;
       return;
     }
-    let position: PositionPoint;
-    // try {
-    //   position = await new PositionClass().getPosition();
-    // } catch (e) {
-    //   this.resMessage =
-    //     e == typeof ""
-    //       ? e
-    //       : "Error : the PositionClass().getPosition() error object should be string";
-    //   return;
-    // }
+    // let position: PositionPoint;
+    // // try {
+    // //   position = await new PositionClass().getPosition();
+    // // } catch (e) {
+    // //   this.resMessage =
+    // //     e == typeof ""
+    // //       ? e
+    // //       : "Error : the PositionClass().getPosition() error object should be string";
+    // //   return;
+    // // }
     let loginResult = await this.sentLoginRequest(username, password);
     if (!loginResult.ok) {
       // err

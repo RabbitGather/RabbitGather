@@ -101,19 +101,11 @@ function timeout(ms: number) {
 @Options({})
 export default class Ruler extends Vue.with(Props) {
   private TenScalePoints: (number | undefined)[][] = [];
-  beforeMount() {
-    // console.log("Ruler beforeMount Min: ", this.min);
-    // console.log("Ruler beforeMount Max: ", this.max);
-    // let tempArray: number[] = [];
-    // for (let i = this.min; i <= this.max; i++) {
-    //   tempArray.push(i);
-    //   if (tempArray.length == 10) {
-    //     this.TenScalePoints.push([...tempArray]);
-    //     tempArray = [];
-    //   }
-    // }
-    // this.TenScalePoints.push(tempArray);
-  }
+
+// scrollEvent(){
+//   console.lo
+// }
+
   max = 0;
   min = 0;
   async Init(max: number, min: number) {
@@ -135,19 +127,18 @@ export default class Ruler extends Vue.with(Props) {
       }
     }
     this.TenScalePoints.push(tempArray);
-    // await timeout(3000);
+
     this.$nextTick(() => {
       scrollboxcontainer = this.$refs.scrollboxcontainer as HTMLDivElement;
       triangle = this.$refs.triangle as HTMLDivElement;
       let thecenterBar = scrollboxcontainer.querySelector(
         "[value='" + this.max / 2 + "']"
       ) as HTMLDivElement;
-      let rect = scrollboxcontainer.getBoundingClientRect();
 
-      // console.log("thecenterBar.offsetLeft: ", thecenterBar.offsetLeft);
-      scrollboxcontainer.scrollLeft =
-        thecenterBar.offsetLeft - scrollboxcontainer.offsetWidth / 2 + 3;
-      this.$emit(RadiusUpdateEvent, this.max / 2);
+      scrollboxcontainer.scrollLeft = 0;
+      // scrollboxcontainer.scrollLeft =
+      //   thecenterBar.offsetLeft - scrollboxcontainer.offsetWidth / 2 + 3;
+      // this.$emit(RadiusUpdateEvent, this.max / 2);
     });
   }
 

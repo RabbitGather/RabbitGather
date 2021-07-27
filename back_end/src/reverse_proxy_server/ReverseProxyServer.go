@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	//"log"
@@ -63,7 +62,7 @@ func init() {
 }
 
 func (r *ReverseProxyServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
-	log.DEBUG.Println("ReverseProxyServer listen on : ", ServePath)
+	log.DEBUG.Println("ReverseProxyServer listen on : ", ServePath.String())
 
 	shutdownCallback(r.shutdown)
 	r.ginEngine = gin.Default()
@@ -130,8 +129,8 @@ func (r *ReverseProxyServer) Startup(ctx context.Context, shutdownCallback util.
 
 // 分配請求的主要邏輯
 func (s *ReverseProxyServer) distributor(c *gin.Context) {
-	log.DEBUG.Println("ReverseProxyServer - Request Host : ", c.Request.Host)
-	log.DEBUG.Println("ReverseProxyServer GetClientIP: ", c.ClientIP())
+	log.DEBUG.Println("Request Host: ", c.Request.Host)
+	//log.DEBUG.Println("ReverseProxyServer GetClientIP: ", c.ClientIP())
 
 	//log.TempLog().Println("ReverseProxyServer Header: ",pretty.Sprint(c.Request.Header))
 	req := c.Request
@@ -153,10 +152,10 @@ func (s *ReverseProxyServer) distributor(c *gin.Context) {
 	realAddrURL, exist := redirectAddrMap[subHost]
 	if !exist {
 		c.AbortWithStatus(http.StatusNotFound)
-		log.DEBUG.Println("SubHost not exist : ", subHost)
+		log.DEBUG.Println("SubHost not exist: ", subHost)
 		return
 	}
-	fmt.Println("redirect to realAddr : ", realAddrURL)
+	log.DEBUG.Printf("redirect to real address: %s\n", realAddrURL.Host)
 	proxy := httputil.NewSingleHostReverseProxy(realAddrURL)
 	proxy.Director = func(req *http.Request) {
 		req.URL.Scheme = realAddrURL.Scheme
@@ -180,7 +179,7 @@ func (s *ReverseProxyServer) distributor(c *gin.Context) {
 //}
 
 func (r *ReverseProxyServer) shutdown() {
-	log.DEBUG.Println("ReverseProxyServer - shutdown")
+	log.DEBUG.Println("ReverseProxyServer start to shutdown")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

@@ -1,22 +1,22 @@
 package api_server
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
-	"github.com/gin-contrib/cors"
+	//"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/kr/pretty"
+	cors "github.com/rs/cors/wrapper/gin"
+	"net/http"
+	"net/url"
 	"rabbit_gather/src/auth/claims"
 	"rabbit_gather/src/auth/status_bitmask"
 	"rabbit_gather/src/auth/token"
+	"rabbit_gather/src/logger"
 	"rabbit_gather/src/service/account_management"
 	"rabbit_gather/src/service/article_management"
 	"rabbit_gather/src/service/peer"
-
-	//"log"
-	"net/http"
-	"net/url"
-	"rabbit_gather/src/logger"
 
 	"rabbit_gather/util"
 	"time"
@@ -26,8 +26,9 @@ import (
 靜態頁面服務器
 */
 type APIServer struct {
-	serverInst *http.Server
-	ginEngine  *gin.Engine
+	serverInst       *http.Server
+	ginEngine        *gin.Engine
+	shutdownCallback util.ShutdownCallback
 }
 
 var ServePath *url.URL
@@ -49,8 +50,8 @@ func init() {
 }
 
 func (w *APIServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
-	log.DEBUG.Println("APIServer listen on : ", ServePath)
-
+	log.DEBUG.Println("APIServer listen on : ", ServePath.String())
+	w.shutdownCallback = shutdownCallback
 	shutdownCallback(w.shutdown)
 	w.ginEngine = gin.Default()
 	//w.ginEngine.TrustedProxies = append(w.ginEngine.TrustedProxies,"127.0.0.1/0" )
@@ -83,6 +84,7 @@ func (w *APIServer) Startup(ctx context.Context, shutdownCallback util.ShutdownC
 }
 
 func (w *APIServer) shutdown() {
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -101,20 +103,81 @@ func init() {
 	// - GET,POST, PUT, HEAD methods
 	// - Credentials share disabled
 	// - Preflight requests cached for 12 hours
-	config := cors.DefaultConfig()
+	//config := cors.Config{
+	//	AllowAllOrigins:        true,
+	//	AllowMethods:           []string{"GET", "POST", "OPTIONS"},
+	//	AllowHeaders:           []string{"Origin", "Content-Length", "Content-Type"},
+	//	AllowWebSockets:        true,
+	//	AllowOrigins:           nil,
+	//	AllowOriginFunc:        nil,
+	//
+	//	AllowCredentials:       true,
+	//	MaxAge:                 12 * time.Hour,
+	//	ExposeHeaders:          nil,
+	//	AllowWildcard:          true,
+	//	AllowBrowserExtensions: true,
+	//	AllowFiles:             true,
+	//}
+	//cors.Default()
+	config := cors.Options{
+		AllowedOrigins:         []string{"http://localhost:8080", "https://meowalien.com:443"},
+		AllowOriginFunc:        nil,
+		AllowOriginRequestFunc: nil,
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			//http.MethodOptions,
+		},
+		AllowedHeaders:     []string{"token"},
+		ExposedHeaders:     nil,
+		MaxAge:             0,
+		AllowCredentials:   false,
+		OptionsPassthrough: false,
+		Debug:              false,
+	}
+
 	//config.AllowOrigins = []string{"http://localhost:8080"}
 	//config.AllowMethods = []string{"POST"}
 	//if util.DebugMode{
-	//	config.AllowAllOrigins = true // debug
+	//config.AllowAllOrigins = true // debug
 	//}
-	config.AllowOrigins = []string{"http://meowalien.com:443"}
-	config.AllowMethods = []string{"GET", "POST"}
+	//config.AllowOrigins = []string{"http://meowalien.com:443"}
+	//config.AllowMethods = []string{"GET", "POST", "OPTIONS"}
+	//cs := cors.New(config)
+
 	corsHandler = cors.New(config)
 }
 
+type bodyLogWriter struct {
+	gin.ResponseWriter
+	body *bytes.Buffer
+}
+
+func (w bodyLogWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
+func (w *APIServer) debugLogger(c *gin.Context) {
+	var log = log.TempLog()
+	log.Println("Request: ", pretty.Sprint(c.Request.Body))
+	log.Println("Method: ", pretty.Sprint(c.Request.Method))
+	log.Println("ContentType: ", pretty.Sprint(c.ContentType()))
+	log.Println("Header: ", pretty.Sprint(c.Request.Header))
+
+	blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
+	c.Writer = blw
+	c.Next()
+	log.Println("--- AfterHandle ---")
+	log.Println("Response Body: ", pretty.Sprint(blw.body.String()))
+	log.Println("Response Header: ", pretty.Sprint(c.Writer.Header()))
+	//log.Println("ContentType: ",pretty.Sprint(c.ContentType()))
+	//log.Println("Header: ",pretty.Sprint(c.Request.Header))
+}
 func (w *APIServer) MountService(ctx context.Context) {
 
 	w.useMiddleware(gin.Recovery())
+	//w.useMiddleware(w.debugLogger)
 	w.useMiddleware(w.permissionCheck)
 	w.useMiddleware(corsHandler)
 
@@ -127,21 +190,33 @@ func (w *APIServer) MountService(ctx context.Context) {
 	articleManagement := article_management.ArticleManagement{}
 	w.HandlePost("/post_article", articleManagement.PostArticleHandler, status_bitmask.Login)
 	w.HandlePost("/search_article", articleManagement.SearchArticleHandler, status_bitmask.Login)
+	//w.HandleOptions("/update_listener/", articleManagement.ArticleUpdateListener, status_bitmask.NoStatus) //scocket.io
+	w.HandleGet("/update_listener", articleManagement.ArticleUpdateListener, status_bitmask.NoStatus) //scocket.io
+	w.shutdownCallback(func() {
+		err := articleManagement.Close()
+		if err != nil {
+			log.ERROR.Println(err.Error())
+		}
+	})
 
 	peerService := peer.PeerService{}
 	w.HandleGet("/peerjs/id", peerService.GetPeerIDHandler, status_bitmask.Login)
 	w.HandleGet("/peerjs", peerService.PeerWebsocketHandler, status_bitmask.Login)
+
 }
 
 func (w *APIServer) useMiddleware(middleware func(c *gin.Context)) {
 	w.ginEngine.Use(middleware)
 }
 
+func (w *APIServer) HandleOptions(path string, handler gin.HandlerFunc, permissionCode status_bitmask.StatusBitmask) {
+	pathStatusRequirementMap[OPTIONS][path] = permissionCode
+	w.ginEngine.OPTIONS(path, handler)
+}
 func (w *APIServer) HandlePost(path string, handler gin.HandlerFunc, permissionCode status_bitmask.StatusBitmask) {
 	pathStatusRequirementMap[POST][path] = permissionCode
 	w.ginEngine.POST(path, handler)
 }
-
 func (w *APIServer) HandleGet(path string, handler func(c *gin.Context), permissionCode status_bitmask.StatusBitmask) {
 	pathStatusRequirementMap[GET][path] = permissionCode
 	w.ginEngine.GET(path, handler)
@@ -150,10 +225,14 @@ func (w *APIServer) HandleGet(path string, handler func(c *gin.Context), permiss
 // check if client can access the API
 func (w *APIServer) permissionCheck(c *gin.Context) {
 	fullPath := c.FullPath()
+	//log.TempLog().Println("fullPath: ", fullPath)
+	//log.TempLog().Println("c.Request.Method: ", c.Request.Method)
 	statusBitmask, exist := w.getStatusRequirement(HttpMethod(c.Request.Method), fullPath)
 	if !exist {
-		panic("Error when getStatusRequirement")
+		c.AbortWithStatus(http.StatusNotFound)
+		log.DEBUG.Printf("Not supported method or path, Method: %s , Path: %s", c.Request.Method, fullPath)
 	}
+
 	// this should not happen
 	if statusBitmask == status_bitmask.Reject {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "something got wrong."})
@@ -207,19 +286,21 @@ func (w *APIServer) permissionCheck(c *gin.Context) {
 type HttpMethod string
 
 const (
-	GET    HttpMethod = "GET"
-	POST   HttpMethod = "POST"
-	PATCH  HttpMethod = "PATCH"
-	DELETE HttpMethod = "DELETE"
-	PUT    HttpMethod = "PUT"
+	GET     HttpMethod = "GET"
+	POST    HttpMethod = "POST"
+	PATCH   HttpMethod = "PATCH"
+	DELETE  HttpMethod = "DELETE"
+	PUT     HttpMethod = "PUT"
+	OPTIONS HttpMethod = "OPTIONS"
 )
 
 var pathStatusRequirementMap = map[HttpMethod]map[string]status_bitmask.StatusBitmask{
-	GET:    {},
-	POST:   {},
-	PUT:    {},
-	PATCH:  {},
-	DELETE: {},
+	GET:     {},
+	POST:    {},
+	PUT:     {},
+	PATCH:   {},
+	DELETE:  {},
+	OPTIONS: {},
 }
 
 //var pathStatusRequirementMap_RWMutex = sync.RWMutex{}
@@ -231,8 +312,9 @@ func (w *APIServer) getStatusRequirement(method HttpMethod, path string) (status
 	case PUT:
 	case PATCH:
 	case DELETE:
+	case OPTIONS:
 	default:
-		log.ERROR.Println("Not supported http method")
+		log.ERROR.Println("Not supported http method: ", method)
 		return status_bitmask.Reject, true
 	}
 	p, exist := pathStatusRequirementMap[method][path]

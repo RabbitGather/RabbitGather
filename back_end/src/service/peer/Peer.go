@@ -89,7 +89,7 @@ func (p *PeerService) PeerWebsocketHandler(c *gin.Context) {
 	}
 	err = p.OpenConnection(c.Writer, c.Request)
 	if err != nil {
-		log.DEBUG.Println("PeerService - OpenConnection Error : ", err.Error())
+		log.DEBUG.Println("PeerService - CreateConnection Error : ", err.Error())
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -171,7 +171,7 @@ func (h *PeerService) messageReader() {
 			var messageReceived PeerJsTextMessage
 			err := json.Unmarshal(binaryMessage, &messageReceived)
 			if err != nil {
-				fmt.Println("PeerService - Error when Unmarshal TextMessage to PeerJsTextMessage")
+				fmt.Println("PeerService - Error when UnmarshalJson TextMessage to PeerJsTextMessage")
 				continue
 			}
 			h.newTextMessageInputChannel <- &messageReceived

@@ -9,11 +9,9 @@ import (
 	"github.com/kr/pretty"
 	"io"
 	"io/ioutil"
-	"sync"
-
-	//"log"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 )
 
@@ -136,7 +134,7 @@ func (h *PeerHandler) messageReader() {
 			var messageReceived PeerJsTextMessage
 			err := json.Unmarshal(binaryMessage, &messageReceived)
 			if err != nil {
-				fmt.Println("PeerHandler - Error when Unmarshal TextMessage to PeerJsTextMessage")
+				fmt.Println("PeerHandler - Error when UnmarshalJson TextMessage to PeerJsTextMessage")
 				continue
 			}
 			h.newTextMessageInputChannel <- &messageReceived

@@ -62,7 +62,7 @@ func (w *WebsocketServer) peerHandler(ctx *gin.Context) {
 	}
 	err = peerHandler.OpenConnection(ctx.Writer, ctx.Request)
 	if err != nil {
-		log.Println("WebsocketServer - OpenConnection Error : ", err.Error())
+		log.Println("WebsocketServer - CreateConnection Error : ", err.Error())
 		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}

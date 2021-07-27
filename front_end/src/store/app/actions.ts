@@ -38,7 +38,7 @@ export const actions: ActionTree<AppState, RootState> & AppActions = {
 async function GetUserInfo(argumnt: ActionAugments): Promise<UserSettings> {
   return {
     basic: { name: "DEBUG_NAME", userid: 1 },
-    radaRadius: { MaxRadius: 100, MinRadius: 3 },
+    radaRadius: { MaxRadius: 1000, MinRadius: 5 },
   };
   // let userinfo: UserSettings | undefined = argumnt.state.userInfo;
   // if (userinfo !== undefined) {

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/kr/pretty"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
-	"rabbit_gather/src/neo4j_db"
-	"rabbit_gather/util"
+	"fmt"
+
+	"github.com/googollee/go-socket.io"
+	"net/http"
 )
 
 type ABC string
@@ -61,25 +61,116 @@ var LogLevelMask = ALL
 //func ColorSting(s string ,color ColorCode) string{
 //	return fmt.Sprintf("\033[%dm%s\033[00m",color,s,EndColor)
 //}
+type Msg struct {
+	UserId    string   `json:"userId"`
+	Text      string   `json:"text"`
+	State     string   `json:"state"`
+	Namespace string   `json:"namespace"`
+	Rooms     []string `json:"rooms"`
+}
 
+//var log = logger.NewLoggerWrapper("TRY").TempLog()
 func main() {
+	server := socketio.NewServer(nil)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	server.OnConnect("/", func(s socketio.Conn) error {
+		msg := Msg{s.ID(), "connected!", "notice", "", nil}
+		s.SetContext("")
+		s.Emit("res", msg)
+		fmt.Println("connected /:", s.ID())
+		// fmt.Printf("URL: %#v \n", s.URL())
+		// fmt.Printf("LocalAddr: %#+v \n", s.LocalAddr())
+		// fmt.Printf("RemoteAddr: %#+v \n", s.RemoteAddr())
+		// fmt.Printf("RemoteHeader: %#+v \n", s.RemoteHeader())
+		// fmt.Printf("Cookies: %s \n", s.RemoteHeader().Get("Cookie"))
+		return nil
+	})
 
-	type PositionStruct struct {
-		Latitude  float32 `json:"latitude"`
-		Longitude float32 `json:"longitude"`
-	}
+	server.OnEvent("/", "join", func(s socketio.Conn, room string) {
+		s.Join(room)
+		msg := Msg{s.ID(), "<= " + s.ID() + " join " + room, "state", s.Namespace(), s.Rooms()}
+		fmt.Println("/:join", room, s.Namespace(), s.Rooms())
+		server.BroadcastToRoom(room, "res", "join", msg)
+	})
+	server.OnEvent("/", "leave", func(s socketio.Conn, room string) {
+		s.Leave(room)
+		msg := Msg{s.ID(), "<= " + s.ID() + " leave " + room, "state", s.Namespace(), s.Rooms()}
+		fmt.Println("/:chat received", room, s.Namespace(), s.Rooms())
+		server.BroadcastToRoom(room, "res", "leave", msg)
+	})
 
-	type SearchArticleRequest struct {
-		Position PositionStruct `json:"position"`
-		Radius   int            `json:"radius"`
-	}
-	searchArticleRequest := SearchArticleRequest{
-		Position: PositionStruct{
-			Latitude:  54.44865417480469,
-			Longitude: 145.48887634277344,
-		},
-		Radius: 99999999999,
-	}
+	server.OnEvent("/", "chat", func(s socketio.Conn, msg string) {
+		res := Msg{s.ID(), "<= " + msg, "normal", s.Namespace(), s.Rooms()}
+		s.SetContext(res)
+		fmt.Println("/:chat received", msg, s.Namespace(), s.Rooms(), server.Rooms("/"))
+		rooms := s.Rooms()
+		if len(rooms) > 0 {
+			fmt.Println("broadcast to", rooms)
+			for i := range rooms {
+				server.BroadcastToRoom(rooms[i], "res", "chat", res)
+			}
+			// server.BroadcastToRoom(s.Rooms()[0], "res", res)
+		}
+	})
+
+	server.OnEvent("/", "notice", func(s socketio.Conn, msg string) {
+		fmt.Println("/:notice:", msg)
+		s.Emit("reply", "have "+msg)
+	})
+	server.OnEvent("/chat", "msg", func(s socketio.Conn, msg string) string {
+		fmt.Println("/chat:msg received", msg)
+		return "recv " + msg
+	})
+	server.OnEvent("/", "bye", func(s socketio.Conn) string {
+		last := s.Context().(Msg)
+		s.Emit("bye", last)
+		res := Msg{s.ID(), "<= " + s.ID() + " leaved", "state", s.Namespace(), s.Rooms()}
+		rooms := s.Rooms()
+		s.LeaveAll()
+		s.Close()
+		if len(rooms) > 0 {
+			fmt.Println("broadcast to", rooms)
+			for i := range rooms {
+				server.BroadcastToRoom(rooms[i], "res", "bye", res)
+			}
+		}
+		fmt.Printf("/:bye last context: %#+v \n", s.Context())
+		return last.Text
+	})
+
+	server.OnError("/", func(s socketio.Conn, e error) {
+		fmt.Println("/:error ", e)
+	})
+	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
+		fmt.Println("/:closed", s.ID(), reason)
+	})
+
+	go server.Serve()
+	defer server.Close()
+
+	http.Handle("/socket.io/", server)
+	http.Handle("/", http.FileServer(http.Dir("./asset")))
+
+	fmt.Println("Serving at localhost:8000...")
+	fmt.Println(http.ListenAndServe(":8000", nil))
+	//type PositionStruct struct {
+	//	Latitude  float32 `json:"latitude"`
+	//	Longitude float32 `json:"longitude"`
+	//}
+	//
+	//type SearchArticleRequest struct {
+	//	Position PositionStruct `json:"position"`
+	//	Radius   int            `json:"radius"`
+	//}
+	//searchArticleRequest := SearchArticleRequest{
+	//	Position: PositionStruct{
+	//		Latitude:  54.44865417480469,
+	//		Longitude: 145.48887634277344,
+	//	},
+	//	Radius: 99999999999,
+	//}
 	//type Props struct {
 	//	ID string `json:"id"`
 	//	Title string `json:"title"`
@@ -94,24 +185,24 @@ func main() {
 	//	Labels Labels
 	//	Props Props
 	//}
-	driver := neo4j_db.GetDriver()
-	session := driver.NewSession(neo4j.SessionConfig{})
-	defer session.Close()
-	result, err := session.Run(util.GetFileStoredPlainText("sql/search_article_with_radius.cyp"),
-		map[string]interface{}{
-			"longitude": searchArticleRequest.Position.Longitude,
-			"latitude":  searchArticleRequest.Position.Latitude,
-			"radius":    searchArticleRequest.Radius,
-		},
-	)
-	if err != nil {
-		panic(err.Error())
-	}
-	for result.Next() {
-		record := result.Record()
-		s, _ := record.Get("article")
-		pretty.Println(s.(neo4j.Node).Props)
-	}
+	//driver := neo4j_db.GetDriver()
+	//session := driver.NewSession(neo4j.SessionConfig{})
+	//defer session.Close()
+	//result, err := session.Run(util.GetFileStoredPlainText("sql/search_article_with_radius.cyp"),
+	//	map[string]interface{}{
+	//		"longitude": searchArticleRequest.Position.Longitude,
+	//		"latitude":  searchArticleRequest.Position.Latitude,
+	//		"radius":    searchArticleRequest.Radius,
+	//	},
+	//)
+	//if err != nil {
+	//	panic(err.Error())
+	//}
+	//for result.Next() {
+	//	record := result.Record()
+	//	s, _ := record.Get("article")
+	//	pretty.Println(s.(neo4j.Node).Props)
+	//}
 	//res, err := neo4j_db.RunScriptWithScriptFile(
 	//	"sql/search_article_with_radius.cyp",
 	//	map[string]interface{}{

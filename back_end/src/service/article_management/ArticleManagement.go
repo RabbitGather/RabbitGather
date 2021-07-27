@@ -3,6 +3,7 @@ package article_management
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	//socketio "github.com/googollee/go-socket.io"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"rabbit_gather/src/logger"
 	//"log"
@@ -173,4 +174,80 @@ func (w *ArticleManagement) PostArticleHandler(c *gin.Context) {
 	}
 	//log.DEBUG.Println("neo4jTest - res :", res)
 	c.Status(http.StatusOK)
+}
+
+//var socketServer *socketio.Server
+//
+//func init() {
+//	socketServer = socketio.NewServer(nil)
+//	//socketServer.
+//
+//	socketServer.OnConnect("/", func(s socketio.Conn) error {
+//		s.SetContext("")
+//		log.DEBUG.Println("OnConnect:", s.ID())
+//		return nil
+//	})
+//
+//	socketServer.OnEvent("/", "notice", func(s socketio.Conn, msg string) {
+//		log.DEBUG.Println("OnEvent /-notice:", msg)
+//		s.Emit("reply", "have "+msg)
+//	})
+//
+//	socketServer.OnEvent("/chat", "msg", func(s socketio.Conn, msg string) string {
+//
+//		log.DEBUG.Println("OnEvent /chat-msg:", msg)
+//		s.SetContext(msg)
+//		return "recv " + msg
+//	})
+//
+//	socketServer.OnEvent("/", "bye", func(s socketio.Conn) string {
+//		log.DEBUG.Println("OnEvent /bye:")
+//
+//		last := s.Context().(string)
+//		s.Emit("bye", last)
+//		s.Close()
+//		return last
+//	})
+//
+//	socketServer.OnError("/", func(s socketio.Conn, e error) {
+//		log.DEBUG.Println("meet error:", e)
+//	})
+//
+//	socketServer.OnDisconnect("/", func(s socketio.Conn, reason string) {
+//		log.DEBUG.Println("closed", reason)
+//	})
+//
+//	go socketServer.Serve()
+//	//socketServer.Close()
+//}
+
+func (w *ArticleManagement) Close() error {
+	err := ConnectionManager.CloseAllConnection()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *ArticleManagement) ArticleUpdateListener(c *gin.Context) {
+	//log.TempLog().Println("-- Enter ArticleUpdateListener --")
+	handler := DefaultConnectionHandler()
+	handler.OnOpenEvent = func(uuid int64) {
+		log.DEBUG.Println("Connection OPEN: ", uuid)
+	}
+
+	err := ConnectionManager.CreateConnection(c.Writer, c.Request, handler)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "fail to open connection"})
+		return
+	} else {
+		c.AbortWithStatus(http.StatusOK)
+	}
+
+	handler.OnTextMessageEvent = func(messages ...TextMessage) {
+		log.DEBUG.Println("Connection TextMessageEvent")
+		for _, m := range messages {
+			handler.SentTextMessage("Connsetion success: " + m.GetString())
+		}
+	}
 }

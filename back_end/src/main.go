@@ -27,7 +27,7 @@ func main() {
 	ctx, cancle := context.WithCancel(context.Background())
 	defer cancle()
 	reverseProxyServer := reverse_proxy_server.ReverseProxyServer{}
-	err := reverseProxyServer.Startup(ctx, shutdownCallback)
+	err := reverseProxyServer.Startup(ctx, AppendShutdownCallback)
 	if err != nil {
 		cancle()
 		panic(err.Error())
@@ -35,14 +35,14 @@ func main() {
 
 	ctx1, _ := context.WithCancel(ctx)
 	webserver := web_server.WebServer{}
-	err = webserver.Startup(ctx1, shutdownCallback)
+	err = webserver.Startup(ctx1, AppendShutdownCallback)
 	if err != nil {
 		cancle()
 		panic(err.Error())
 	}
 	ctx2, _ := context.WithCancel(ctx)
 	apiServer := api_server.APIServer{}
-	err = apiServer.Startup(ctx2, shutdownCallback)
+	err = apiServer.Startup(ctx2, AppendShutdownCallback)
 	if err != nil {
 		cancle()
 		panic(err.Error())
@@ -50,7 +50,7 @@ func main() {
 
 	//ctx3, _ := context.WithCancel(ctx)
 	//websocketServer := websocket_server.WebsocketServer{}
-	//err = websocketServer.Startup(ctx3, shutdownCallback)
+	//err = websocketServer.Startup(ctx3, AppendShutdownCallback)
 	//if err != nil {
 	//	cancle()
 	//	panic(err.Error())
@@ -93,6 +93,6 @@ func runShutdownCallbacks() {
 
 var shutdownCallbackQueue = []func(){}
 
-func shutdownCallback(f func()) {
+func AppendShutdownCallback(f func()) {
 	shutdownCallbackQueue = append(shutdownCallbackQueue, f)
 }

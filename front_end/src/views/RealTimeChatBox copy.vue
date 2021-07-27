@@ -1,7 +1,5 @@
 <template>
   <div class="flex flex-row justify-center">
-    
-
     <div class="ChatingBox w-3/4 children:bg-gray text-center">
       <h1 class="text-4xl">Real Time Chating Box</h1>
       <div class="border-2 border-black">
@@ -94,7 +92,7 @@ export default class RealTimeChatBox extends Vue {
       this.myPeerID = peerID;
       this.status = "Awaiting connection...";
     });
-    this.peer.on(PeerEventType.Error, (err) => {
+    this.peer.on(PeerEventType.Error, (err: any) => {
       console.log("On Error event");
 
       console.log("Error : " + err);
@@ -114,7 +112,7 @@ export default class RealTimeChatBox extends Vue {
       this.status = "Connected to: " + connection.peer;
       console.log(this.status);
 
-      connection.on(ConnectionEventType.Data, (data) => {
+      connection.on(ConnectionEventType.Data, (data: any) => {
         console.log("Data recieved: ", data);
         this.chatList.push({ name: connection.peer, message: data });
       });

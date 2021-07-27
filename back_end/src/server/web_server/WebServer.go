@@ -41,7 +41,7 @@ func init() {
 }
 
 func (w *WebServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
-	log.DEBUG.Println("WebServer listen on : ", ServePath)
+	log.DEBUG.Println("WebServer listen on : ", ServePath.String())
 
 	shutdownCallback(w.shutdown)
 	w.ginEngine = gin.Default()
