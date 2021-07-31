@@ -24,3 +24,7 @@ func init() {
 
 type AccountManagement struct {
 }
+
+func (w *AccountManagement) Close() error {
+	return nil
+}

@@ -8,6 +8,7 @@ import (
 	"rabbit_gather/src/db_operator"
 	"rabbit_gather/src/logger"
 	"rabbit_gather/src/neo4j_db"
+	"rabbit_gather/src/redis_db"
 	"rabbit_gather/src/reverse_proxy_server"
 	"rabbit_gather/src/server/api_server"
 	"rabbit_gather/src/server/web_server"
@@ -62,7 +63,12 @@ func main() {
 }
 
 func finalize() {
-	err := db_operator.Close()
+	err := redis_db.Close()
+	for err != nil {
+		log.ERROR.Println(err.Error())
+		err = errors.Unwrap(err)
+	}
+	err = db_operator.Close()
 	for err != nil {
 		log.ERROR.Println(err.Error())
 		err = errors.Unwrap(err)
@@ -80,7 +86,7 @@ func waitForShutdown(ctx context.Context) {
 	case <-ctx.Done():
 		log.DEBUG.Println("Shutdown with Context done")
 	case <-quitSignal:
-		log.DEBUG.Println("Shutdown with QuitSignal")
+		log.DEBUG.Println("Shutdown with OS QuitSignal")
 	}
 	runShutdownCallbacks()
 }

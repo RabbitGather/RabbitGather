@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	//"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/kr/pretty"
-	cors "github.com/rs/cors/wrapper/gin"
+	//cors "github.com/rs/cors/wrapper/gin"
 	"net/http"
 	"net/url"
 	"rabbit_gather/src/auth/claims"
@@ -16,8 +16,6 @@ import (
 	"rabbit_gather/src/logger"
 	"rabbit_gather/src/service/account_management"
 	"rabbit_gather/src/service/article_management"
-	"rabbit_gather/src/service/peer"
-
 	"rabbit_gather/util"
 	"time"
 )
@@ -99,52 +97,26 @@ func (w *APIServer) shutdown() {
 var corsHandler gin.HandlerFunc
 
 func init() {
-	// - No origin allowed by default
-	// - GET,POST, PUT, HEAD methods
-	// - Credentials share disabled
-	// - Preflight requests cached for 12 hours
-	//config := cors.Config{
-	//	AllowAllOrigins:        true,
-	//	AllowMethods:           []string{"GET", "POST", "OPTIONS"},
-	//	AllowHeaders:           []string{"Origin", "Content-Length", "Content-Type"},
-	//	AllowWebSockets:        true,
-	//	AllowOrigins:           nil,
+	//config := cors.Options{
+	//	AllowedOrigins:         []string{"http://localhost:8080", "https://meowalien.com:443"},
 	//	AllowOriginFunc:        nil,
-	//
-	//	AllowCredentials:       true,
-	//	MaxAge:                 12 * time.Hour,
-	//	ExposeHeaders:          nil,
-	//	AllowWildcard:          true,
-	//	AllowBrowserExtensions: true,
-	//	AllowFiles:             true,
+	//	AllowOriginRequestFunc: nil,
+	//	AllowedMethods: []string{
+	//		http.MethodGet,
+	//		http.MethodPost,
+	//		//http.MethodOptions,
+	//	},
+	//	AllowedHeaders:     []string{"token"},
+	//	ExposedHeaders:     nil,
+	//	MaxAge:             0,
+	//	AllowCredentials:   false,
+	//	OptionsPassthrough: false,
+	//	Debug:              false,
 	//}
-	//cors.Default()
-	config := cors.Options{
-		AllowedOrigins:         []string{"http://localhost:8080", "https://meowalien.com:443"},
-		AllowOriginFunc:        nil,
-		AllowOriginRequestFunc: nil,
-		AllowedMethods: []string{
-			http.MethodGet,
-			http.MethodPost,
-			//http.MethodOptions,
-		},
-		AllowedHeaders:     []string{"token"},
-		ExposedHeaders:     nil,
-		MaxAge:             0,
-		AllowCredentials:   false,
-		OptionsPassthrough: false,
-		Debug:              false,
-	}
-
-	//config.AllowOrigins = []string{"http://localhost:8080"}
-	//config.AllowMethods = []string{"POST"}
-	//if util.DebugMode{
-	//config.AllowAllOrigins = true // debug
-	//}
-	//config.AllowOrigins = []string{"http://meowalien.com:443"}
-	//config.AllowMethods = []string{"GET", "POST", "OPTIONS"}
-	//cs := cors.New(config)
-
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:8080", "https://meowalien.com:443"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "token"}
 	corsHandler = cors.New(config)
 }
 
@@ -176,22 +148,44 @@ func (w *APIServer) debugLogger(c *gin.Context) {
 }
 func (w *APIServer) MountService(ctx context.Context) {
 
-	w.useMiddleware(gin.Recovery())
-	//w.useMiddleware(w.debugLogger)
-	w.useMiddleware(w.permissionCheck)
-	w.useMiddleware(corsHandler)
+	w.ginEngine.Use(gin.Recovery())
+	//w.ginEngine.Use(w.debugLogger)
+	//w.useMiddleware(w.permissionCheck)
+	w.ginEngine.Use(corsHandler)
 
 	userAccount := account_management.AccountManagement{}
-
-	w.HandlePost("/login", userAccount.LoginHandler, status_bitmask.NoStatus)
-	w.HandlePost("/signup", userAccount.SignupHandler, status_bitmask.WaitVerificationCode)
-	w.HandlePost("/sent_verification_code", userAccount.SentVerificationCodeHandler, status_bitmask.NoStatus)
+	w.ginEngine.POST("/account/login", w.permissionCheckHandler(status_bitmask.NoStatus), userAccount.LoginHandler)
+	w.ginEngine.POST("/account/signup", w.permissionCheckHandler(status_bitmask.WaitVerificationCode), userAccount.SignupHandler)
+	w.ginEngine.POST("/account/sent_verification_code", w.permissionCheckHandler(status_bitmask.NoStatus), userAccount.SentVerificationCodeHandler)
+	w.shutdownCallback(func() {
+		err := userAccount.Close()
+		if err != nil {
+			log.ERROR.Println(err.Error())
+		}
+	})
+	//w.HandlePost("/login", userAccount.LoginHandler, status_bitmask.NoStatus)
+	//w.HandlePost("/signup", userAccount.SignupHandler, status_bitmask.WaitVerificationCode)
+	//w.HandlePost("/sent_verification_code", userAccount.SentVerificationCodeHandler, status_bitmask.NoStatus)
 
 	articleManagement := article_management.ArticleManagement{}
-	w.HandlePost("/post_article", articleManagement.PostArticleHandler, status_bitmask.Login)
-	w.HandlePost("/search_article", articleManagement.SearchArticleHandler, status_bitmask.Login)
+	// 新增文章
+	w.ginEngine.POST("/article/new", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.PostArticleHandler)
+	// 搜尋文章（會用到定位位置所以要post）
+	w.ginEngine.GET("/article/search", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.SearchArticleHandler)
+	// 取得指定文章
+	w.ginEngine.GET("/article/:id", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.GetArticleHandler)
+	// 監聽文章變更 - 連線後接收請求監聽某文章狀態（不可更詳細，因為不信任請求內容），設定最大監聽量
+	w.ginEngine.GET("/article/listen", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.ArticleUpdateListener)
+	// 刪除文章
+	w.ginEngine.DELETE("/article/:id", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.DeleteArticleHandler)
+	// 更新文章
+	w.ginEngine.PATCH("/article/:id", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.UpdateArticleHandler)
+
+	//w.ginEngine.GET("/article",w.permissionCheckHandler(status_bitmask.Login),articleManagement.ArticleUpdateListener)
+	//w.HandlePost("/article", articleManagement.PostArticleHandler, status_bitmask.Login)
+	//w.HandleGet("/article", articleManagement.SearchArticleHandler, status_bitmask.Login)
 	//w.HandleOptions("/update_listener/", articleManagement.ArticleUpdateListener, status_bitmask.NoStatus) //scocket.io
-	w.HandleGet("/update_listener", articleManagement.ArticleUpdateListener, status_bitmask.NoStatus) //scocket.io
+	//w.HandleGet("/article", articleManagement.ArticleUpdateListener, status_bitmask.NoStatus) //scocket.io
 	w.shutdownCallback(func() {
 		err := articleManagement.Close()
 		if err != nil {
@@ -199,9 +193,9 @@ func (w *APIServer) MountService(ctx context.Context) {
 		}
 	})
 
-	peerService := peer.PeerService{}
-	w.HandleGet("/peerjs/id", peerService.GetPeerIDHandler, status_bitmask.Login)
-	w.HandleGet("/peerjs", peerService.PeerWebsocketHandler, status_bitmask.Login)
+	//peerService := peer.PeerService{}
+	//w.HandleGet("/peerjs/id", peerService.GetPeerIDHandler, status_bitmask.Login)
+	//w.HandleGet("/peerjs", peerService.PeerWebsocketHandler, status_bitmask.Login)
 
 }
 
@@ -223,64 +217,65 @@ func (w *APIServer) HandleGet(path string, handler func(c *gin.Context), permiss
 }
 
 // check if client can access the API
-func (w *APIServer) permissionCheck(c *gin.Context) {
-	fullPath := c.FullPath()
-	//log.TempLog().Println("fullPath: ", fullPath)
-	//log.TempLog().Println("c.Request.Method: ", c.Request.Method)
-	statusBitmask, exist := w.getStatusRequirement(HttpMethod(c.Request.Method), fullPath)
-	if !exist {
-		c.AbortWithStatus(http.StatusNotFound)
-		log.DEBUG.Printf("Not supported method or path, Method: %s , Path: %s", c.Request.Method, fullPath)
-	}
+func (w *APIServer) permissionCheckHandler(statusBitmask status_bitmask.StatusBitmask) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		fullPath := c.FullPath()
+		//statusBitmask, exist := w.getStatusRequirement(HttpMethod(c.Request.Method), fullPath)
+		//if !exist {
+		//	c.AbortWithStatus(http.StatusNotFound)
+		//	log.DEBUG.Printf("Not supported method or path, Method: %s , Path: %s", c.Request.Method, fullPath)
+		//	return
+		//}
 
-	// this should not happen
-	if statusBitmask == status_bitmask.Reject {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "something got wrong."})
-		log.ERROR.Printf("Got Reject when getStatusRequirement")
-		return
-	}
-	// if the path doesn't need status to access
-	if statusBitmask == status_bitmask.NoStatus {
+		// this should not happen
+		if statusBitmask == status_bitmask.Reject {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "this API is temporarily closed"})
+			log.ERROR.Printf("Got Reject on: %s", fullPath)
+			return
+		}
+		// if the path doesn't need status to access
+		if statusBitmask == status_bitmask.NoStatus {
+			c.Next()
+			return
+		}
+
+		tokenRawString := c.GetHeader(util.TokenHeaderKey)
+		if tokenRawString == "" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "no token"})
+			log.DEBUG.Println("no token: ", pretty.Sprint(c.Request.Header))
+			return
+		}
+
+		//var utilityClaims = claims.UtilityClaims{}
+		utilityClaims, err := token.ParseToken(tokenRawString)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token not valid"})
+			log.DEBUG.Printf("ParseToken error : %s", err.Error())
+			return
+		}
+		statusClaims, exist := utilityClaims.GetSubClaims(claims.StatusClaimsName)
+		if !exist {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "status claims not exist"})
+			log.DEBUG.Println("status claims not exist")
+			return
+		}
+
+		statusClaimsAfterCast, ok := statusClaims.(claims.StatusClaims)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"err": "Server error",
+			})
+			log.ERROR.Println("error when cast StatusClaims")
+			return
+		}
+
+		if !status_bitmask.BitMaskCheck(statusBitmask, statusClaimsAfterCast.StatusBitmask) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "you do not have permission to access this api"})
+			log.DEBUG.Printf("reject access to: %s\nClaims: %s", fullPath, pretty.Sprint(utilityClaims))
+			return
+		}
 		c.Next()
-		return
 	}
-
-	tokenRawString := c.GetHeader(util.TokenHeaderKey)
-	if tokenRawString == "" {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "no token"})
-		log.DEBUG.Println("no token: ", pretty.Sprint(c.Request.Header))
-		return
-	}
-
-	//var utilityClaims = claims.UtilityClaims{}
-	utilityClaims, err := token.ParseToken(tokenRawString)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token not valid"})
-		log.DEBUG.Printf("ParseToken error : %s", err.Error())
-		return
-	}
-	statusClaims, exist := utilityClaims.GetSubClaims(claims.StatusClaimsName)
-	if !exist {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "status claims not exist"})
-		log.DEBUG.Println("status claims not exist")
-		return
-	}
-
-	statusClaimsAfterCast, ok := statusClaims.(claims.StatusClaims)
-	if !ok {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"err": "Server error",
-		})
-		log.ERROR.Println("error when cast StatusClaims")
-		return
-	}
-	if !status_bitmask.BitMaskCheck(statusBitmask, statusClaimsAfterCast.StatusBitmask) {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "you do not have permission to access this api"})
-		log.DEBUG.Printf("reject access to: %s\nClaims: %s", fullPath, pretty.Sprint(utilityClaims))
-		return
-	}
-	c.Next()
-	return
 }
 
 type HttpMethod string

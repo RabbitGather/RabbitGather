@@ -2,6 +2,7 @@ package article_management
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/gorilla/websocket"
 	"io"
 	"rabbit_gather/util"
@@ -21,7 +22,7 @@ const (
 )
 
 type ConnectionHandler struct {
-	OnOpenEvent          func(uuid int64)
+	OnOpenEvent          func(connectionID int64)
 	OnTextMessageEvent   func(...TextMessage)
 	OnBinaryMessageEvent func(message ...*RawMessage)
 	OnPongEvent          func(message ...*RawMessage)
@@ -63,7 +64,7 @@ func DefaultConnectionHandler() *ConnectionHandler {
 
 type Handler func(...interface{})
 
-func (w *ConnectionHandler) SentMessage(message *RawMessage) {
+func (w *ConnectionHandler) SentRawMessage(message *RawMessage) {
 	w.sentMessageChannel <- *message
 }
 
@@ -79,23 +80,6 @@ func (c *ConnectionHandler) Initialize() {
 	go c.readPump()
 	go c.writePump()
 }
-
-const (
-	CloseNormalClosure           = 1000
-	CloseGoingAway               = 1001
-	CloseProtocolError           = 1002
-	CloseUnsupportedData         = 1003
-	CloseNoStatusReceived        = 1005
-	CloseAbnormalClosure         = 1006
-	CloseInvalidFramePayloadData = 1007
-	ClosePolicyViolation         = 1008
-	CloseMessageTooBig           = 1009
-	CloseMandatoryExtension      = 1010
-	CloseInternalServerErr       = 1011
-	CloseServiceRestart          = 1012
-	CloseTryAgainLater           = 1013
-	CloseTLSHandshake            = 1015
-)
 
 func (c *ConnectionHandler) readPump() {
 	c.SetReadLimit(c.maxMessageSize)
@@ -115,24 +99,23 @@ func (c *ConnectionHandler) readPump() {
 		if err != nil {
 			if closeError, ok := err.(*websocket.CloseError); ok {
 				errorCode := closeError.Code
-				log.TempLog().Println("Close with code: ", util.WebsocketCloseCodeNumberToString(errorCode))
 				switch errorCode {
-				case CloseNormalClosure: //1000
-				case CloseGoingAway: //1001
-				case CloseProtocolError: //1002
-				case CloseUnsupportedData: //1003
-				case CloseNoStatusReceived: //1005
-				case CloseAbnormalClosure: //1006
-				case CloseInvalidFramePayloadData: //1007
-				case ClosePolicyViolation: //1008
-				case CloseMessageTooBig: //1009
-				case CloseMandatoryExtension: //1010
-				case CloseInternalServerErr: //1011
-				case CloseServiceRestart: //1012
-				case CloseTryAgainLater: //1013
-				case CloseTLSHandshake: //1015
+				case websocket.CloseNormalClosure: //1000
+				case websocket.CloseGoingAway: //1001
+				//case websocket.CloseProtocolError: //1002
+				//case websocket.CloseUnsupportedData: //1003
+				//case websocket.CloseNoStatusReceived: //1005
+				//case websocket.CloseAbnormalClosure: //1006
+				//case websocket.CloseInvalidFramePayloadData: //1007
+				//case websocket.ClosePolicyViolation: //1008
+				//case websocket.CloseMessageTooBig: //1009
+				//case websocket.CloseMandatoryExtension: //1010
+				//case websocket.CloseInternalServerErr: //1011
+				//case websocket.CloseServiceRestart: //1012
+				//case websocket.CloseTryAgainLater: //1013
+				//case websocket.CloseTLSHandshake: //1015
 				default:
-					log.ERROR.Println("Unknown errorCode: ", errorCode)
+					log.WARNING.Printf("Close with code:%d, %s", errorCode, util.WebsocketCloseCodeNumberToString(errorCode))
 				}
 			} else {
 				log.DEBUG.Println("NextReader error: ", err.Error())
@@ -223,8 +206,8 @@ func (c *ConnectionHandler) writePump() {
 				message.SentMessageErrorCallback(err)
 				return
 			}
-			if message.AfterSent != nil {
-				message.AfterSent()
+			if message.AfterSentCallback != nil {
+				message.AfterSentCallback()
 			}
 		case <-ticker.C:
 			err := c.SetWriteDeadline(time.Now().Add(c.writeWait))
@@ -249,5 +232,25 @@ func (c *ConnectionHandler) Close() error {
 }
 
 func (w *ConnectionHandler) SentTextMessage(s string) {
-	w.SentMessage(&RawMessage{Reader: bytes.NewReader([]byte(s))})
+	w.SentRawMessage(&RawMessage{Reader: bytes.NewReader([]byte(s))})
+}
+
+func (w *ConnectionHandler) SentMessage(event interface{}, sentMessageErrorCallback func(err error), afterSentCallback func()) error {
+	b, err := json.Marshal(event)
+	if err != nil {
+		log.ERROR.Println("error when marshal Message")
+		return err
+	}
+	if sentMessageErrorCallback == nil {
+		sentMessageErrorCallback = func(err error) {
+			log.ERROR.Println("fail to sent ArticleErrorEvent")
+		}
+	}
+
+	w.SentRawMessage(&RawMessage{
+		Reader:                   bytes.NewReader(b),
+		SentMessageErrorCallback: sentMessageErrorCallback,
+		AfterSentCallback:        afterSentCallback,
+	})
+	return nil
 }

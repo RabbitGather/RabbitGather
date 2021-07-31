@@ -52,7 +52,7 @@ type RawMessage struct {
 	BinaryCatch              []byte
 	Reader                   io.Reader
 	SentMessageErrorCallback func(err error)
-	AfterSent                func()
+	AfterSentCallback        func()
 }
 
 type TextMessage interface {

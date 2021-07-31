@@ -27,8 +27,9 @@ import Circle from "@/components/Circle.vue";
 import L, { LeafletEvent, ResizeEvent, ZoomAnimEvent } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { GetPosition, PositionPoint } from "@/global/Positions";
+import * as t from "@/views/type";
 // import PinchZoom from "pinch-zoom-js";
-
+// Long = X, Lat = Y
 class Props {
   // optional prop
   maxRadius = prop<number>({ required: true });
@@ -46,6 +47,24 @@ export default class Map extends Vue.with(Props) {
   map!: L.Map;
   circleOnMap!: L.Circle;
   theMapElement!: HTMLDivElement;
+
+  DrawArticleOnMap(article: t.Article) {
+    let myIcon = L.icon({
+      iconUrl:
+        "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+      iconSize: [23, 40],
+      // iconAnchor: [22, 94],
+      // popupAnchor: [-3, -76],
+      // shadowUrl: "my-icon-shadow.png",
+      // shadowSize: [68, 95],
+      // shadowAnchor: [22, 94],
+    });
+    L.marker([article.Position.Y, article.Position.X], {
+      icon: myIcon,
+    }).addTo(this.map);
+
+    this.map.flyTo([article.Position.Y, article.Position.X]);
+  }
   wheelZoom(e: WheelEvent) {
     // UP < 0
     // DOWN > 0
@@ -81,16 +100,16 @@ export default class Map extends Vue.with(Props) {
       console.log("currentPosition: ", startPoint);
       this.map = L.map("openmap", {
         // scrollWheelZoom: "center",
-        zoomSnap: 0.1,
-        zoomDelta: 0.1,
+        // zoomSnap: 0.1,
+        // zoomDelta: 0.1,
         minZoom: 10,
-        boxZoom: false,
-        doubleClickZoom: false,
-        touchZoom: true,
-        zoomControl: false,
-        dragging: true,
-        trackResize: true,
-        scrollWheelZoom: false,
+        // boxZoom: false,
+        // doubleClickZoom: false,
+        // touchZoom: true,
+        // zoomControl: true,
+        // dragging: true,
+        // trackResize: true,
+        // scrollWheelZoom: false,
       }).setView([startPoint.latitude, startPoint.longitude], 18);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution:

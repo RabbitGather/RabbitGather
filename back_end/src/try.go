@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/kr/pretty"
 
-	"github.com/googollee/go-socket.io"
-	"net/http"
+	//"github.com/go-redis/redis/v8"
+	"rabbit_gather/src/redis_db"
+	//"strconv"
+	//"time"
 )
 
 type ABC string
@@ -68,96 +72,222 @@ type Msg struct {
 	Namespace string   `json:"namespace"`
 	Rooms     []string `json:"rooms"`
 }
+type NameStruct struct {
+	Name string
+	Num  int
+}
 
 //var log = logger.NewLoggerWrapper("TRY").TempLog()
 func main() {
-	server := socketio.NewServer(nil)
+	ctx := context.Background()
+	client := redis_db.GetClient(0)
+
+	err := client.Set(ctx, "KEY", NameStruct{Name: "THE_NAME", Num: 123}, 0)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	var rss NameStruct
+	err = client.Get(ctx, "KEY", &rss)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		pretty.Println(rss)
+	}
+	client.DeleteAll(ctx, "*")
+
+	//client.Del(ctx,"KEY")
+	err = client.Get(ctx, "KEY", &rss)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		pretty.Println(rss)
+	}
+	//pong, err :=  client.Ping(ctx).Result()
 	//if err != nil {
-	//	log.Fatal(err)
+	//	fmt.Println(err)
 	//}
-	server.OnConnect("/", func(s socketio.Conn) error {
-		msg := Msg{s.ID(), "connected!", "notice", "", nil}
-		s.SetContext("")
-		s.Emit("res", msg)
-		fmt.Println("connected /:", s.ID())
-		// fmt.Printf("URL: %#v \n", s.URL())
-		// fmt.Printf("LocalAddr: %#+v \n", s.LocalAddr())
-		// fmt.Printf("RemoteAddr: %#+v \n", s.RemoteAddr())
-		// fmt.Printf("RemoteHeader: %#+v \n", s.RemoteHeader())
-		// fmt.Printf("Cookies: %s \n", s.RemoteHeader().Get("Cookie"))
-		return nil
-	})
+	//fmt.Println(pong)
+	//val, err := client.Get(ctx, "key").Result()
+	//switch {
+	//case err == redis.Nil:
+	//	fmt.Println("key does not exist")
+	//case err != nil:
+	//	fmt.Println("Get failed", err)
+	//case val == "":
+	//	fmt.Println("value is empty")
+	//}	// Output: PONG <nil>
+	//
+	//var incr *redis.IntCmd
+	//_, err = client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+	//	incr = pipe.Incr(ctx, "pipelined_counter")
+	//	pipe.Expire(ctx, "pipelined_counter", time.Hour)
+	//	return nil
+	//})
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//// The value is available only after pipeline is executed.
+	//fmt.Println(incr.Val())
+	//pipe := client.Pipeline()
+	//
+	//incr = pipe.Incr(ctx, "keypipeline_counter")
+	//pipe.Expire(ctx, "keypipeline_counter", time.Hour)
+	//
+	//_, err = pipe.Exec(ctx)
+	//defer pipe.Close()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//// The value is available only after Exec.
+	//fmt.Println(incr.Val())
+	//
+	//for i := 0; i < 106; i++ {
+	//	client.Set(ctx,"key"+strconv.Itoa(i), "value"+strconv.Itoa(i), 0)
+	//}
+	//
+	//var cursor uint64
+	//var n int
+	//for {
+	//	var keys []string
+	//	var err error
+	//	//*扫描所有key，每次20条
+	//	keys, cursor, err = client.Scan(ctx,cursor, "*", 20).Result()
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	n += len(keys)
+	//
+	//	fmt.Printf("\nfound %d keys\n", n)
+	//	var value string
+	//	for _, key := range keys {
+	//		value, err = client.Get(ctx,key).Result()
+	//		fmt.Printf("%v %v\n", key, value)
+	//	}
+	//	if cursor == 0 {
+	//		break
+	//	}
+	//}
+	//for {
+	//	var keys []string
+	//	var err error
+	//	//*扫描所有key，每次20条
+	//	keys, cursor, err = 	pipe.Scan(ctx,0,"*",20).Result()
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	n += len(keys)
+	//
+	//	fmt.Printf("\nfound %d keys\n", n)
+	//	var value string
+	//	for _, key := range keys {
+	//		value, err = client.Get(ctx,key).Result()
+	//		fmt.Printf("%v %v\n", key, value)
+	//	}
+	//	if cursor == 0 {
+	//		break
+	//	}
+	//}
+	//iter := client.Scan(ctx, cursor, "key*", 0).Iterator()
+	//for iter.Next(ctx) {
+	//	fmt.Println(iter.Val())
+	//}
+	//if err := iter.Err(); err != nil {
+	//	panic(err)
+	//}
+	//keys, cursor, err = client.Scan(cursor, "*", 20).Result()
 
-	server.OnEvent("/", "join", func(s socketio.Conn, room string) {
-		s.Join(room)
-		msg := Msg{s.ID(), "<= " + s.ID() + " join " + room, "state", s.Namespace(), s.Rooms()}
-		fmt.Println("/:join", room, s.Namespace(), s.Rooms())
-		server.BroadcastToRoom(room, "res", "join", msg)
-	})
-	server.OnEvent("/", "leave", func(s socketio.Conn, room string) {
-		s.Leave(room)
-		msg := Msg{s.ID(), "<= " + s.ID() + " leave " + room, "state", s.Namespace(), s.Rooms()}
-		fmt.Println("/:chat received", room, s.Namespace(), s.Rooms())
-		server.BroadcastToRoom(room, "res", "leave", msg)
-	})
-
-	server.OnEvent("/", "chat", func(s socketio.Conn, msg string) {
-		res := Msg{s.ID(), "<= " + msg, "normal", s.Namespace(), s.Rooms()}
-		s.SetContext(res)
-		fmt.Println("/:chat received", msg, s.Namespace(), s.Rooms(), server.Rooms("/"))
-		rooms := s.Rooms()
-		if len(rooms) > 0 {
-			fmt.Println("broadcast to", rooms)
-			for i := range rooms {
-				server.BroadcastToRoom(rooms[i], "res", "chat", res)
-			}
-			// server.BroadcastToRoom(s.Rooms()[0], "res", res)
-		}
-	})
-
-	server.OnEvent("/", "notice", func(s socketio.Conn, msg string) {
-		fmt.Println("/:notice:", msg)
-		s.Emit("reply", "have "+msg)
-	})
-	server.OnEvent("/chat", "msg", func(s socketio.Conn, msg string) string {
-		fmt.Println("/chat:msg received", msg)
-		return "recv " + msg
-	})
-	server.OnEvent("/", "bye", func(s socketio.Conn) string {
-		last := s.Context().(Msg)
-		s.Emit("bye", last)
-		res := Msg{s.ID(), "<= " + s.ID() + " leaved", "state", s.Namespace(), s.Rooms()}
-		rooms := s.Rooms()
-		s.LeaveAll()
-		s.Close()
-		if len(rooms) > 0 {
-			fmt.Println("broadcast to", rooms)
-			for i := range rooms {
-				server.BroadcastToRoom(rooms[i], "res", "bye", res)
-			}
-		}
-		fmt.Printf("/:bye last context: %#+v \n", s.Context())
-		return last.Text
-	})
-
-	server.OnError("/", func(s socketio.Conn, e error) {
-		fmt.Println("/:error ", e)
-	})
-	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
-		fmt.Println("/:closed", s.ID(), reason)
-	})
-
-	go server.Serve()
-	defer server.Close()
-
-	http.Handle("/socket.io/", server)
-	http.Handle("/", http.FileServer(http.Dir("./asset")))
-
-	fmt.Println("Serving at localhost:8000...")
-	fmt.Println(http.ListenAndServe(":8000", nil))
+	//rdb.Set(context.Background(),"key","")
+	//return nil
+	//server := socketio.NewServer(nil)
+	////if err != nil {
+	////	log.Fatal(err)
+	////}
+	//server.OnConnect("/", func(s socketio.Conn) error {
+	//	msg := Msg{s.ID(), "connected!", "notice", "", nil}
+	//	s.SetContext("")
+	//	s.Emit("res", msg)
+	//	fmt.Println("connected /:", s.ID())
+	//	// fmt.Printf("URL: %#v \n", s.URL())
+	//	// fmt.Printf("LocalAddr: %#+v \n", s.LocalAddr())
+	//	// fmt.Printf("RemoteAddr: %#+v \n", s.RemoteAddr())
+	//	// fmt.Printf("RemoteHeader: %#+v \n", s.RemoteHeader())
+	//	// fmt.Printf("Cookies: %s \n", s.RemoteHeader().Get("Cookie"))
+	//	return nil
+	//})
+	//
+	//server.OnEvent("/", "join", func(s socketio.Conn, room string) {
+	//	s.Join(room)
+	//	msg := Msg{s.ID(), "<= " + s.ID() + " join " + room, "state", s.Namespace(), s.Rooms()}
+	//	fmt.Println("/:join", room, s.Namespace(), s.Rooms())
+	//	server.BroadcastToRoom(room, "res", "join", msg)
+	//})
+	//server.OnEvent("/", "leave", func(s socketio.Conn, room string) {
+	//	s.Leave(room)
+	//	msg := Msg{s.ID(), "<= " + s.ID() + " leave " + room, "state", s.Namespace(), s.Rooms()}
+	//	fmt.Println("/:chat received", room, s.Namespace(), s.Rooms())
+	//	server.BroadcastToRoom(room, "res", "leave", msg)
+	//})
+	//
+	//server.OnEvent("/", "chat", func(s socketio.Conn, msg string) {
+	//	res := Msg{s.ID(), "<= " + msg, "normal", s.Namespace(), s.Rooms()}
+	//	s.SetContext(res)
+	//	fmt.Println("/:chat received", msg, s.Namespace(), s.Rooms(), server.Rooms("/"))
+	//	rooms := s.Rooms()
+	//	if len(rooms) > 0 {
+	//		fmt.Println("broadcast to", rooms)
+	//		for i := range rooms {
+	//			server.BroadcastToRoom(rooms[i], "res", "chat", res)
+	//		}
+	//		// server.BroadcastToRoom(s.Rooms()[0], "res", res)
+	//	}
+	//})
+	//
+	//server.OnEvent("/", "notice", func(s socketio.Conn, msg string) {
+	//	fmt.Println("/:notice:", msg)
+	//	s.Emit("reply", "have "+msg)
+	//})
+	//server.OnEvent("/chat", "msg", func(s socketio.Conn, msg string) string {
+	//	fmt.Println("/chat:msg received", msg)
+	//	return "recv " + msg
+	//})
+	//server.OnEvent("/", "bye", func(s socketio.Conn) string {
+	//	last := s.Context().(Msg)
+	//	s.Emit("bye", last)
+	//	res := Msg{s.ID(), "<= " + s.ID() + " leaved", "state", s.Namespace(), s.Rooms()}
+	//	rooms := s.Rooms()
+	//	s.LeaveAll()
+	//	s.Close()
+	//	if len(rooms) > 0 {
+	//		fmt.Println("broadcast to", rooms)
+	//		for i := range rooms {
+	//			server.BroadcastToRoom(rooms[i], "res", "bye", res)
+	//		}
+	//	}
+	//	fmt.Printf("/:bye last context: %#+v \n", s.Context())
+	//	return last.Text
+	//})
+	//
+	//server.OnError("/", func(s socketio.Conn, e error) {
+	//	fmt.Println("/:error ", e)
+	//})
+	//server.OnDisconnect("/", func(s socketio.Conn, reason string) {
+	//	fmt.Println("/:closed", s.ID(), reason)
+	//})
+	//
+	//go server.Serve()
+	//defer server.Close()
+	//
+	//http.Handle("/socket.io/", server)
+	//http.Handle("/", http.FileServer(http.Dir("./asset")))
+	//
+	//fmt.Println("Serving at localhost:8000...")
+	//fmt.Println(http.ListenAndServe(":8000", nil))
 	//type PositionStruct struct {
-	//	Latitude  float32 `json:"latitude"`
-	//	Longitude float32 `json:"longitude"`
+	//	X  float32 `json:"latitude"`
+	//	Y float32 `json:"longitude"`
 	//}
 	//
 	//type SearchArticleRequest struct {
@@ -166,8 +296,8 @@ func main() {
 	//}
 	//searchArticleRequest := SearchArticleRequest{
 	//	Position: PositionStruct{
-	//		Latitude:  54.44865417480469,
-	//		Longitude: 145.48887634277344,
+	//		X:  54.44865417480469,
+	//		Y: 145.48887634277344,
 	//	},
 	//	Radius: 99999999999,
 	//}
@@ -190,8 +320,8 @@ func main() {
 	//defer session.Close()
 	//result, err := session.Run(util.GetFileStoredPlainText("sql/search_article_with_radius.cyp"),
 	//	map[string]interface{}{
-	//		"longitude": searchArticleRequest.Position.Longitude,
-	//		"latitude":  searchArticleRequest.Position.Latitude,
+	//		"longitude": searchArticleRequest.Position.Y,
+	//		"latitude":  searchArticleRequest.Position.X,
 	//		"radius":    searchArticleRequest.Radius,
 	//	},
 	//)
@@ -206,8 +336,8 @@ func main() {
 	//res, err := neo4j_db.RunScriptWithScriptFile(
 	//	"sql/search_article_with_radius.cyp",
 	//	map[string]interface{}{
-	//		"longitude":  searchArticleRequest.Position.Longitude,
-	//		"latitude":     searchArticleRequest.Position.Latitude,
+	//		"longitude":  searchArticleRequest.Position.Y,
+	//		"latitude":     searchArticleRequest.Position.X,
 	//		"radius":searchArticleRequest.Radius,
 	//	})
 	//if err != nil {

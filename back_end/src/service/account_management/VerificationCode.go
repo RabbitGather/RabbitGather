@@ -154,7 +154,6 @@ func (w *AccountManagement) getVerificationCodeBindingPackage(code string) (*Ver
 		dropVerificationCode(code)
 		return nil, errors.New("timeout")
 	}
-
 	return pkg.(*VerificationCodeBindingPackage), nil
 }
 
