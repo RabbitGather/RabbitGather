@@ -7,7 +7,7 @@ type Broker struct {
 	unSubscribeChan chan *BrokerClient
 }
 
-const DEFULT_CHAN_SIZE = 5
+const DEFULT_CHAN_SIZE = 1
 
 type BrokerOptions struct {
 	PublishChanSize     int
@@ -18,7 +18,7 @@ type BrokerOptions struct {
 func NewBroker(option *BrokerOptions) *Broker {
 	if option == nil {
 		option = &BrokerOptions{
-			PublishChanSize:     1,
+			PublishChanSize:     DEFULT_CHAN_SIZE,
 			SubscribeChanSize:   1,
 			UnSubscribeChanSize: 1,
 		}
