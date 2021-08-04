@@ -52,16 +52,16 @@ export default class MapContainer extends Vue {
       conn.onmessage = (evt: MessageEvent) => {
         console.log("onmessage evt: ", evt.data);
         let message = JSON.parse(evt.data) as t.ArticleChangeEvent;
-        console.log("message: ", message.Event);
+        console.log("message: ", message.event);
 
-        switch (message.Event) {
+        switch (message.event) {
           case "NEW":
             this.DrawPointOnMap({
-              Timestamp: message.Timestamp,
-              ID: message.ID,
-              Position: {
-                X: message.Position.X,
-                Y: message.Position.Y,
+              timestamp: message.timestamp,
+              id: message.id,
+              position: {
+                x: message.position.x,
+                y: message.position.y,
               },
             });
         }
@@ -71,26 +71,27 @@ export default class MapContainer extends Vue {
         console.log("onerror evt: ", evt);
       };
       conn.onopen = (ev: Event) => {
-        console.log("onopen ev: ", ev);
-        conn.send("THIS_IS_TEST");
+        // console.log("onopen ev: ", ev);
+        conn.send(JSON.stringify({ action: "MESSAGE", text: "Test message" }));
       };
     };
     initListener();
 
-    store
-      .dispatch(AllActionTypes.APP.GetUserInfo)
-      .then((userinfo: UserSettings) => {
-        this.maxRadius = userinfo.radaRadius.MaxRadius;
-        this.minRadius = userinfo.radaRadius.MinRadius;
-        (this.$refs.Ruler as Ruler).Init(this.maxRadius, this.minRadius);
-      });
+    // read UserSetting and set the MaxRadius and MinRadius to Ruler components
+    // store
+    //   .dispatch(AllActionTypes.APP.GetUserInfo)
+    //   .then((userinfo: UserSettings) => {
+    //     this.maxRadius = userinfo.radaRadius.MaxRadius;
+    //     this.minRadius = userinfo.radaRadius.MinRadius;
+    //     (this.$refs.Ruler as Ruler).Init(this.maxRadius, this.minRadius);
+    //   });
   }
 
   DrawPointOnMap(article: t.Article) {
-    console.log("article: ", article.Timestamp);
-    console.log("article: ", article.ID);
-    console.log("article: ", article.Position.Y);
-    console.log("article: ", article.Position.X);
+    console.log("article: ", article.timestamp);
+    console.log("article: ", article.id);
+    console.log("article: ", article.position.y);
+    console.log("article: ", article.position.x);
     (this.$refs.Map as Map).DrawArticleOnMap(article);
   }
   NewRadius(radius: number) {
@@ -102,11 +103,14 @@ export default class MapContainer extends Vue {
     this.UpdateMap(newRadius);
   }
 
+  NewRadishStep = 20;
   NewRadishGape = 10;
   lastRadius = 0;
   UpdateMap(newRadius: number) {
     // ask radish from server if radius reach the gape
     if (newRadius > this.NewRadishGape) {
+      this.NewRadishGape += this.NewRadishStep;
+
       // pull new Radish from server and add in the map componet.
       // let radishes = this.GetNewRadishFromServer(lastRadius, newRadius);
       // (this.$refs.Map as Map).PushNewRadishes(radishes);

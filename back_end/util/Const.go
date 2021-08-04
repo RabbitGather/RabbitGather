@@ -7,8 +7,6 @@ const IDENTIFICATION_SYMBOL = "fvqejfopj3/5<>?>9rm2ur#$TW 0924#$@T$#T$#^"
 
 const ClientIP_KEY = "fue8asodxn8fewj8snxfpei"
 
-const TokenHeaderKey = "token"
-
 var DebugMode = true
 
 func CheckIDENTIFICATION_SYMBOL(req *http.Request) bool {

@@ -1,14 +1,13 @@
 package main
 
 import (
-	"context"
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/kr/pretty"
-
-	//"github.com/go-redis/redis/v8"
-	"rabbit_gather/src/redis_db"
-	//"strconv"
-	//"time"
+	"net/smtp"
+	"rabbit_gather/src/db_operator"
+	"rabbit_gather/util"
 )
 
 type ABC string
@@ -76,34 +75,153 @@ type NameStruct struct {
 	Name string
 	Num  int
 }
+type UserClaims struct {
+	User string
+}
+type UserC UserClaims
+type Claims interface {
+}
+
+type loginAuth struct {
+	username, password string
+}
+
+func LoginAuth(username, password string) smtp.Auth {
+	return &loginAuth{username, password}
+}
+
+func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
+	return "LOGIN", []byte{}, nil
+}
+
+func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
+	if more {
+		switch string(fromServer) {
+		case "Username:":
+			return []byte(a.username), nil
+		case "Password:":
+			return []byte(a.password), nil
+		default:
+			return nil, errors.New("Unkown fromServer")
+		}
+	}
+	return nil, nil
+}
+
+var dbOperator db_operator.DBOperator
+
+func init() {
+	//log = logger.NewLoggerWrapper("AccountManagement")
+	type Config struct {
+		DatabaseConfig db_operator.DatabaseConnectionConfiguration `json:"database_config"`
+	}
+	var config Config
+	err := util.ParseJsonConfic(&config, "config/article_management.config.json")
+	if err != nil {
+		panic(err.Error())
+	}
+	dbOperator = db_operator.GetOperator(db_operator.Mysql, config.DatabaseConfig)
+	//fmt.Println("")
+}
+
+type ArticleAuthoritySetting struct {
+	MaxRadius uint32 `json:"max_radius"`
+	MinRadius uint32 `json:"min_radius"`
+}
+
+func (m ArticleAuthoritySetting) Value() (driver.Value, error) {
+	j, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return driver.Value(j), nil
+}
+
+func (m *ArticleAuthoritySetting) Scan(src interface{}) error {
+	fmt.Println("src: ", src)
+	var source []byte
+
+	switch src.(type) {
+	case []uint8:
+		source = src.([]byte)
+	case nil:
+		return nil
+	default:
+		return errors.New("incompatible type for StringInterfaceMap")
+	}
+	fmt.Println("source: ", string(source))
+	var _m ArticleAuthoritySetting
+	err := json.Unmarshal(source, &_m)
+	if err != nil {
+		return err
+	}
+	fmt.Println("_m: ", _m)
+	*m = _m
+	return nil
+}
 
 //var log = logger.NewLoggerWrapper("TRY").TempLog()
 func main() {
-	ctx := context.Background()
-	client := redis_db.GetClient(0)
-
-	err := client.Set(ctx, "KEY", NameStruct{Name: "THE_NAME", Num: 123}, 0)
+	stat := dbOperator.Statement("select setting from `user_article_setting` where user = ?;")
+	var setting ArticleAuthoritySetting
+	err := stat.QueryRow(1).Scan(&setting)
 	if err != nil {
-		fmt.Println(err.Error())
+		panic(err.Error())
 	}
-	var rss NameStruct
-	err = client.Get(ctx, "KEY", &rss)
+	fmt.Println(setting)
+	//err := redis_db.GetClient(0).IteratorAllKeyValue(context.Background(),
+	//	func(_ redis.Pipeliner, key string, value interface{}) (bool, error) {
+	//		fmt.Println(key," ",value)
+	//		return true,nil
+	//	})
+	//if err != nil {
+	//	panic(err.Error())
+	//}
 
-	if err != nil {
-		fmt.Println(err.Error())
-	} else {
-		pretty.Println(rss)
-	}
-	client.DeleteAll(ctx, "*")
+	//claims := Claims(&UserClaims{User: "USER"})
+	//var claimstruct UserClaims
+	//var interfaceclaims interface{} = &claimstruct
+	//*claims.(*UserClaims) =*interfaceclaims.(*UserClaims)
+	//interfaceclaims.(*UserClaims) = claims.(*UserClaims)
+	//fmt.Println(*claims.(*UserClaims))
+	//fmt.Println(*interfaceclaims.(*UserClaims))
+	//*interfaceclaims.(*UserClaims) = *claims.(*UserClaims)
 
-	//client.Del(ctx,"KEY")
-	err = client.Get(ctx, "KEY", &rss)
+	//marsual := func(it interface{}){
+	//	switch t :=it.(type) {
+	//	case *UserClaims:
+	//		*t = *claims.(*UserClaims)
+	//	}
+	//}
+	//
+	//marsual(&claimstruct)
+	//fmt.Println(claimstruct)
 
-	if err != nil {
-		fmt.Println(err.Error())
-	} else {
-		pretty.Println(rss)
-	}
+	//ctx := context.Background()
+	//client := redis_db.GetClient(0)
+	//
+	//err := client.Set(ctx, "KEY", NameStruct{Name: "THE_NAME", Num: 123}, 0)
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//}
+	//var rss NameStruct
+	//err = client.Get(ctx, "KEY", &rss)
+	//
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//} else {
+	//	pretty.Println(rss)
+	//}
+	//client.DeleteAll(ctx, "*")
+	//
+	////client.Del(ctx,"KEY")
+	//err = client.Get(ctx, "KEY", &rss)
+	//
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//} else {
+	//	pretty.Println(rss)
+	//}
 	//pong, err :=  client.Ping(ctx).Result()
 	//if err != nil {
 	//	fmt.Println(err)
@@ -190,7 +308,7 @@ func main() {
 	//		break
 	//	}
 	//}
-	//iter := client.Scan(ctx, cursor, "key*", 0).Iterator()
+	//iter := client.Scan(ctx, cursor, "key*", 0).IteratorKeyValue()
 	//for iter.Next(ctx) {
 	//	fmt.Println(iter.Val())
 	//}
@@ -203,7 +321,7 @@ func main() {
 	//return nil
 	//server := socketio.NewServer(nil)
 	////if err != nil {
-	////	log.Fatal(err)
+	////	fmt.Println(err)
 	////}
 	//server.OnConnect("/", func(s socketio.Conn) error {
 	//	msg := Msg{s.ID(), "connected!", "notice", "", nil}

@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
-	claims2 "rabbit_gather/src/auth/claims"
 	"rabbit_gather/src/auth/status_bitmask"
+	"rabbit_gather/src/auth/token/claims"
 	"rabbit_gather/src/logger"
 	"rabbit_gather/util"
 	"time"
 )
+
+const TokenHeaderKey = "token"
+const UtilityClaimKey = "utility_claim"
 
 var log = logger.NewLoggerWrapper("token")
 var privateKey *rsa.PrivateKey
@@ -75,24 +78,25 @@ func init() {
 }
 
 // Get a new Standard Claims with defult setting.
-func NewStandardClaims() jwt.StandardClaims {
+func NewStandardClaims() claims.StandardClaims {
 	nowTime := time.Now()
-	return jwt.StandardClaims{
+	return claims.StandardClaims{
 		Audience:  "",
-		ExpiresAt: nowTime.Add(claims2.DefaultExpiresAtTimeDuration).Unix(),
+		ExpiresAt: nowTime.Add(claims.DefaultExpiresAtTimeDuration).Unix(),
 		Id:        util.Snowflake().String(),
 		IssuedAt:  nowTime.Unix(),
 		Issuer:    Issuer,
-		NotBefore: nowTime.Add(claims2.DefaultNotBeforeTimeDuration).Unix(),
+		NotBefore: nowTime.Add(claims.DefaultNotBeforeTimeDuration).Unix(),
 		Subject:   "",
 	}
 }
 
 // Parse the jwt token from string and fill in claims.
 // Return error when the input JWT token not Vaild
-func ParseToken(rawTokenString string) (claims2.UtilityClaims, error) {
-	var mapClaims jwt.MapClaims //map[string]interface{}//UtilityClaims
-	utilityClaims := claims2.UtilityClaims{}
+func ParseToken(rawTokenString string) (*claims.UtilityClaims, error) {
+	var mapClaims jwt.MapClaims
+	utilityClaims := claims.UtilityClaims{}
+	//a:=jwt.MapClaims(utilityClaims)
 	token, err := jwt.ParseWithClaims(rawTokenString, &mapClaims, func(token *jwt.Token) (interface{}, error) {
 		e := checkTokenWhenParse(token)
 		if e != nil {
@@ -105,26 +109,15 @@ func ParseToken(rawTokenString string) (claims2.UtilityClaims, error) {
 	}
 	err = utilityClaims.ParseMapClaims(mapClaims)
 	if err != nil {
-		log.DEBUG.Println(err.Error())
-		if ve, ok := err.(*jwt.ValidationError); ok {
-			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				return nil, fmt.Errorf("input string is not a JWT token: %w", err)
-			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-				return nil, fmt.Errorf("token is either expired or not active yet: %w", err)
-			} else {
-				return nil, fmt.Errorf("this token is not valid: %w", err)
-			}
-		} else {
-			log.ERROR.Println("Error when parse token.")
-			return nil, err
-		}
+		log.ERROR.Println("Error when parse token: ", err.Error())
+		return nil, err
 	}
 	if !token.Valid {
+		err := fmt.Errorf("this token is not valid")
 		log.DEBUG.Println(err.Error())
-		return nil, fmt.Errorf("this token is not valid: %w", err)
+		return nil, err
 	}
-	//mapClaims.GetSubClaims()
-	return utilityClaims, nil
+	return &utilityClaims, nil
 }
 
 // Check if the token format right.
@@ -136,12 +129,13 @@ func checkTokenWhenParse(token *jwt.Token) error {
 }
 
 // Sign a new token.
-func SignToken(claims *claims2.UtilityClaims) (string, error) {
-	//nowTime := time.Now()
-	claims.SetSubClaims(claims2.StandardClaimsName, NewStandardClaims())
-	token := jwt.NewWithClaims(SignMethod, claims)
-	signedString, err := token.SignedString(privateKey)
-	//jwt.StandardClaims{}
+func SignToken(utilityClaims *claims.UtilityClaims) (string, error) {
+	// put default StandardClaims in if not set
+	if _, exist := (*utilityClaims)[claims.StandardClaimsName]; !exist {
+		utilityClaims.SetSubClaims(claims.StandardClaimsName, NewStandardClaims())
+	}
+
+	signedString, err := jwt.NewWithClaims(SignMethod, utilityClaims).SignedString(privateKey)
 	if err != nil {
 		log.ERROR.Println("NewSignedToken Error")
 		return "", err
@@ -151,47 +145,36 @@ func SignToken(claims *claims2.UtilityClaims) (string, error) {
 
 func UpdateStatus(existToken string, code status_bitmask.StatusBitmask) (string, error) {
 	if existToken == "" {
-		claims := claims2.UtilityClaims{
-			claims2.StatusClaimsName: claims2.StatusClaims{
-				StatusBitmask: status_bitmask.WaitVerificationCode,
-			},
-		}
-		token, err := SignToken(&claims)
-		if err != nil {
-			log.DEBUG.Println("fail to create WaitVerificationCode token: ", err.Error())
-			return "", err
-		}
-		return token, nil
+		return "", errors.New("input \"\" as token")
 	} else {
-		//	append permission bit mask
-		//var uc = claims2.UtilityClaims{}
 		uc, err := ParseToken(existToken)
 		if err != nil {
 			log.DEBUG.Println("fail with ParseToken: ", err.Error())
 			return "", err
 		}
 
-		//var statusClaim claims2.StatusClaims
-		//err = uc.MappingClaim(&statusClaim)
-		//if err != nil {
-		//	log.DEBUG.Println("error when MappingClaim: ", err.Error())
-		//	return "", err
-		//}
-		//uc.SetSubClaims(claims2.StatusClaimsName, &statusClaim)
-		statusClaims, exist := uc.GetSubClaims(claims2.StatusClaimsName)
-		if !exist {
-			log.DEBUG.Println("status claims not exist")
-			return "", errors.New("status claims not exist")
-		}
-		statusClaims.(claims2.StatusClaims).AppendBitMask(status_bitmask.WaitVerificationCode)
+		var statusClaims claims.StatusClaims
+		err = uc.GetSubClaims(&statusClaims)
+		if err != nil {
+			if err == claims.NoSuchClaimsError {
+				log.DEBUG.Println("status claims not exist: ", err.Error())
+				return "", err
+			} else if err == claims.UnknownClaimsError {
+				log.ERROR.Println("UnknownClaimsError: ", err.Error())
+				return "", err
+			} else {
+				panic(err.Error())
+			}
 
-		token, err := SignToken(&uc)
+		}
+		statusClaims.AppendBitMask(code)
+
+		token, err := SignToken(uc)
 		if err != nil {
 			log.DEBUG.Println("error when Sign token: ", err.Error())
 			return "", err
 		}
 		return token, nil
-		//c.JSON(http.StatusOK, gin.H{util.TokenHeaderKey: token})
 	}
 }
 

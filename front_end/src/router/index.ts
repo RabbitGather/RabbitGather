@@ -1,8 +1,11 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
-import Home from "../views/Home.vue";
-import RealTimeChatBox from "../views/RealTimeChatBox.vue";
+// import Home from "../views/Home.vue";
+// import RealTimeChatBox from "../views/RealTimeChatBox.vue";
 import HomeView from "../views/HomeView.vue";
 import MapContainer from "../views/MapContainer.vue";
+import HelloView from "../views/HelloView.vue";
+import RabbitPage from "../views/RabbitPage.vue";
+import WellcomePage from "../views/WellcomePage.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -20,6 +23,61 @@ const routes: Array<RouteRecordRaw> = [
         {
           property: "og:description",
           content: "RabbitGather Login page",
+        },
+      ],
+    },
+  },
+  {
+    path: "/hello",
+    component: HelloView,
+
+    children: [
+      {
+        path: "wellcome",
+        component: WellcomePage,
+        meta: {
+          title: "RabbitGather",
+          metaTags: [
+            {
+              name: "description",
+              content: "RabbitGather Main page",
+            },
+            {
+              property: "og:description",
+              content: "RabbitGather Main page",
+            },
+          ],
+        },
+      },
+      {
+        path: "rabbit",
+        component: RabbitPage,
+        meta: {
+          title: "RabbitGather",
+          metaTags: [
+            {
+              name: "description",
+              content: "RabbitGather Main page",
+            },
+            {
+              property: "og:description",
+              content: "RabbitGather Main page",
+            },
+          ],
+        },
+      },
+    ],
+    name: "HelloPage",
+    meta: {
+      title: "RabbitGather",
+      metaTags: [
+        {
+          name: "description",
+          content: "RabbitGather Hello page",
+        },
+        {
+          property: "og:description",
+          content: "RabbitGather Hello page",
         },
       ],
     },
@@ -46,24 +104,24 @@ const routes: Array<RouteRecordRaw> = [
           ],
         },
       },
-      {
-        path: "chat",
-        component: RealTimeChatBox,
-        name: "RealTimeChatBox",
-        meta: {
-          title: "RabbitGather - RealTimeChatBox",
-          metaTags: [
-            {
-              name: "description",
-              content: "RabbitGather - RealTimeChatBox",
-            },
-            {
-              property: "og:description",
-              content: "RabbitGather - RealTimeChatBox",
-            },
-          ],
-        },
-      },
+      // {
+      //   path: "chat",
+      //   component: RealTimeChatBox,
+      //   name: "RealTimeChatBox",
+      //   meta: {
+      //     title: "RabbitGather - RealTimeChatBox",
+      //     metaTags: [
+      //       {
+      //         name: "description",
+      //         content: "RabbitGather - RealTimeChatBox",
+      //       },
+      //       {
+      //         property: "og:description",
+      //         content: "RabbitGather - RealTimeChatBox",
+      //       },
+      //     ],
+      //   },
+      // },
     ],
   },
   // {

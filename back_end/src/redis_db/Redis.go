@@ -58,28 +58,50 @@ const DefaultCount = 100
 const DefaultCursor = 0
 
 func (c *ClientWrapper) DeleteAll(ctx context.Context, match string) error {
-	pipe := c.Pipeline()
-	defer func(pipe redis.Pipeliner) {
-		err := pipe.Close()
-		if err != nil {
-			log.ERROR.Println("Error when Close pipe: ", err.Error())
-		}
-	}(pipe)
-	defer func(pipe redis.Pipeliner, ctx context.Context) {
-		_, err := pipe.Exec(ctx)
-		if err != nil {
-			log.ERROR.Println("Error when Exec pipe: ", err.Error())
-		}
-	}(pipe, ctx)
-
-	iter := c.Client.Scan(ctx, DefaultCursor, match, DefaultCount).Iterator()
-	for iter.Next(ctx) {
-		pipe.Del(ctx, iter.Val())
-	}
-	if err := iter.Err(); err != nil {
+	err := c.IteratorKeys(ctx, match, func(pipe redis.Pipeliner, key string) (bool, error) {
+		pipe.Del(ctx, key)
+		return true, nil
+	})
+	if err != nil {
 		return err
 	}
+	//pipe := c.Pipeline()
+	//defer func(pipe redis.Pipeliner) {
+	//	err := pipe.Close()
+	//	if err != nil {
+	//		log.ERROR.Println("Error when Close pipe: ", err.Error())
+	//	}
+	//}(pipe)
+	//defer func(pipe redis.Pipeliner, ctx context.Context) {
+	//	_, err := pipe.Exec(ctx)
+	//	if err != nil {
+	//		log.ERROR.Println("Error when Exec pipe: ", err.Error())
+	//	}
+	//}(pipe, ctx)
+	//
+	//iter := c.Client.Scan(ctx, DefaultCursor, match, DefaultCount).IteratorKeyValue()
+	//for iter.Next(ctx) {
+	//	pipe.Del(ctx, iter.Val())
+	//}
+	//if err := iter.Err(); err != nil {
+	//	return err
+	//}
 	return nil
+}
+
+func (c *ClientWrapper) IteratorAllKeyValue(ctx context.Context, f func(redis.Pipeliner, string, interface{}) (bool, error)) error {
+	return c.IteratorKeyValue(ctx, "*", f)
+}
+func (c *ClientWrapper) IteratorKeyValue(ctx context.Context, match string, f func(redis.Pipeliner, string, interface{}) (bool, error)) error {
+	return c.IteratorKeys(ctx, match, func(pipe redis.Pipeliner, key string) (bool, error) {
+		var value interface{}
+		err := c.Get(ctx, key, &value)
+		if err != nil {
+			return false, err
+		}
+		donext, err := f(pipe, key, value)
+		return donext, err
+	})
 }
 
 func GetClient(id int) *ClientWrapper {
@@ -120,4 +142,35 @@ func (c *ClientWrapper) Get(ctx context.Context, key string, stk interface{}) er
 		return err
 	}
 	return json.Unmarshal([]byte(p), stk)
+}
+
+func (c *ClientWrapper) IteratorKeys(ctx context.Context, match string, f func(pipe redis.Pipeliner, key string) (bool, error)) error {
+	pipe := c.Pipeline()
+	defer func(pipe redis.Pipeliner) {
+		err := pipe.Close()
+		if err != nil {
+			log.ERROR.Println("Error when Close pipe: ", err.Error())
+		}
+	}(pipe)
+	defer func(pipe redis.Pipeliner, ctx context.Context) {
+		_, err := pipe.Exec(ctx)
+		if err != nil {
+			log.ERROR.Println("Error when Exec pipe: ", err.Error())
+		}
+	}(pipe, ctx)
+
+	iter := c.Client.Scan(ctx, DefaultCursor, match, DefaultCount).Iterator()
+	for iter.Next(ctx) {
+		key := iter.Val()
+		doNext, err := f(pipe, key)
+		if err != nil {
+			return err
+		} else if !doNext {
+			break
+		}
+	}
+	if err := iter.Err(); err != nil {
+		return err
+	}
+	return nil
 }

@@ -55,7 +55,7 @@ func (w *AccountManagement) SignupHandler(c *gin.Context) {
 	if err != nil {
 		if err == user_account.UserNameExist {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "user name exist."})
-			log.ERROR.Printf("CreateNewUserAccount error : %s", err.Error())
+			log.DEBUG.Printf("CreateNewUserAccount error : %s", err.Error())
 			return
 		} else {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "Create Account error"})

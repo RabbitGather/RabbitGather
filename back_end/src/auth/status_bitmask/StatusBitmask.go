@@ -4,7 +4,6 @@ package status_bitmask
 type StatusBitmask uint32
 
 //type APINames Code
-
 const (
 	AllStatus = StatusBitmask(^uint32(0))
 

@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
-	"rabbit_gather/src/auth/claims"
 	"rabbit_gather/src/auth/status_bitmask"
 	"rabbit_gather/src/auth/token"
+	claims2 "rabbit_gather/src/auth/token/claims"
 	"rabbit_gather/src/db_operator"
 	"rabbit_gather/src/logger"
 	"rabbit_gather/util"
@@ -145,18 +145,18 @@ func CheckPasswordHash(password, hash string) bool {
 
 // Create a token with this user claims
 func (u *UserAccount) NewToken(status status_bitmask.StatusBitmask) (string, error) {
-	theClaims := claims.UtilityClaims{
-		claims.StatusClaimsName: claims.StatusClaims{
+	theClaims := claims2.UtilityClaims{
+		//claims2.StandardClaimsName: token.NewStandardClaims(),
+		claims2.StatusClaimsName: claims2.StatusClaims{
 			StatusBitmask: status,
 		},
-		claims.UserClaimsName: claims.UserClaims{
+		claims2.UserClaimsName: claims2.UserClaims{
 			UserName: u.UserName,
 			UserID:   u.UserID,
 		},
 	}
 	signedTokenString, err := token.SignToken(&theClaims)
-	//token := JWTToken{}
-	//token, err := NewSignedToken(&theConst)
+
 	if err != nil {
 		log.ERROR.Println(err.Error())
 		return "", err

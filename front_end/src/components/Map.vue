@@ -49,21 +49,31 @@ export default class Map extends Vue.with(Props) {
   theMapElement!: HTMLDivElement;
 
   DrawArticleOnMap(article: t.Article) {
-    let myIcon = L.icon({
-      iconUrl:
-        "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
-      iconSize: [23, 40],
+    let classes_out = "";
+    let classes_main = "";
+    let text = "";
+    let classes_foot = "";
+    let text_foot = "";
+    let myIcon = L.divIcon({
+      // iconSize: null,
+      html: `<div class="${classes_out}">
+          <div class="${classes_main}">${text}</div>
+          <div class="${classes_foot}">${text_foot}</div>
+        </div>`,
+      // iconUrl:
+      //   "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+      // iconSize: [23, 40],
       // iconAnchor: [22, 94],
       // popupAnchor: [-3, -76],
       // shadowUrl: "my-icon-shadow.png",
       // shadowSize: [68, 95],
       // shadowAnchor: [22, 94],
     });
-    L.marker([article.Position.Y, article.Position.X], {
+    L.marker([article.position.y, article.position.x], {
       icon: myIcon,
     }).addTo(this.map);
 
-    this.map.flyTo([article.Position.Y, article.Position.X]);
+    this.map.flyTo([article.position.y, article.position.x]);
   }
   wheelZoom(e: WheelEvent) {
     // UP < 0
