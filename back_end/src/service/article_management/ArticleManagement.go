@@ -1,6 +1,8 @@
 package article_management
 
 import (
+	"github.com/gin-gonic/gin"
+	"net/http"
 	"rabbit_gather/src/db_operator"
 	"rabbit_gather/src/logger"
 	"rabbit_gather/util"
@@ -44,6 +46,24 @@ func (w *ArticleManagement) Close() error {
 	}
 	ArticleChangeBorker.Stop()
 	return nil
+}
+
+
+
+func (w *ArticleManagement) UpdateAuthorityHandler(c *gin.Context) {
+//UPDATE `user_article_setting` SET setting = JSON_REPLACE(setting, '$.area1', 'chinasss', '$.max_radius', '400') WHERE user = 1;
+	type ArticleAuthorityUpdateRequest struct {
+		MaxRadius uint `json:"max_radius,omitempty"`
+		MinRadius uint `json:"min_radius,omitempty"`
+	}
+	var setting ArticleAuthorityUpdateRequest
+	err := c.ShouldBindJSON(&setting)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound,gin.H{
+			"err":"wrong input",
+		})
+		return
+	}
 }
 
 var ArticleChangeBorker *util.Broker

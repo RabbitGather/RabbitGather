@@ -25,21 +25,24 @@ https://www.figma.com/file/2RU9Wj1U7LAgoBBEVYrVdR/RabbitGater?node-id=0%3A1
 * [x] 使用Neo4j儲存文章與定位資訊
 * [x] p2p瀏覽器伺服器，以及配套後端服務
 * [x] 加入TailwindCss
-* [ ] 建立透過定位搜尋半徑內文章的功能
-* [ ] 建立雷達介面 
+* [x] 建立透過定位搜尋半徑內文章的功能
+* [x] 建立雷達介面 
+* [x] 加入Redis
+* [x] 加入Email驗證碼機制
 * [ ] 修改聊天室為群組聊天室
 * [ ] 加入簡訊驗證碼機制
-* [ ] 加入Email驗證碼機制
+* [ ] 完善自動測試
 * [ ] 加入Docker
-* [ ] 加入Redis
 * [ ] 加入line notify
 * [ ] 加入line Messenger
+
 
 * [ ] 增加定位精度
 * [ ] 加入Kubernetes
 * [ ] 加入Vite
 * [ ] 加入Google豋入
 * [ ] 製作"@meowalien.com"的MailServer
+*
 
 
 

@@ -167,7 +167,10 @@ func (w *APIServer) MountService(ctx context.Context) {
 	})
 
 	articleManagement := article_management.ArticleManagement{}
-	w.ginEngine.POST("/article/ask_authority", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.AskAuthorityHandler)
+	// 消改文章設定
+	w.ginEngine.POST("/article/settings", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.UpdateAuthorityHandler)
+	// 查詢文章設定
+	w.ginEngine.GET("/article/settings", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.AskAuthorityHandler)
 	// 新增文章
 	w.ginEngine.POST("/article/new", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.PostArticleHandler)
 	// 搜尋文章（會用到定位位置所以要post）

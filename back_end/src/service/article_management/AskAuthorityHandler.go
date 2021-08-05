@@ -66,10 +66,7 @@ func (w *ArticleManagement) AskAuthorityHandler(c *gin.Context) {
 //	}
 //}
 
-type ArticleAuthoritySetting struct {
-	MaxRadius uint `json:"max_radius"`
-	MinRadius uint `json:"min_radius"`
-}
+
 
 func (m ArticleAuthoritySetting) Value() (driver.Value, error) {
 	j, err := json.Marshal(m)

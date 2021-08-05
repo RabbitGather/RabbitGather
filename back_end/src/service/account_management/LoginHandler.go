@@ -10,8 +10,8 @@ import (
 func (w *AccountManagement) LoginHandler(c *gin.Context) {
 	log.DEBUG.Println("login")
 	userinput := struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Username string `json:"username"  binding:"required"`
+		Password string `json:"password"  binding:"required"`
 	}{}
 
 	err := c.ShouldBindJSON(&userinput)

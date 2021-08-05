@@ -8,9 +8,9 @@ import (
 )
 
 type SignupUserInput struct {
-	Username         string `json:"username"`
-	Password         string `json:"password"`
-	VerificationCode string `json:"verification_code"`
+	Username         string `json:"username"   binding:"required"`
+	Password         string `json:"password"  binding:"required"`
+	VerificationCode string `json:"verification_code"  binding:"required"`
 	Email            string `json:"email,omitempty"`
 	Phone            string `json:"phone,omitempty"`
 }
