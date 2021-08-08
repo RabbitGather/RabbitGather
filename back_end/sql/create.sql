@@ -1,8 +1,5 @@
 show tables;
 
-
-drop table if exists `user`;
-
 CREATE TABLE `user`
 (
     `id` int unsigned primary key auto_increment,
@@ -13,9 +10,16 @@ CREATE TABLE `user`
     `api_permission_bitmask` int unsigned not null
 );
 
+CREATE TABLE `user_information`
+(
+    `user` int unsigned primary key,
+    `email` varchar (254) unique ,
+    `phone` varchar (30) unique ,
+    foreign key (`user`) references user(`id`)
+);
 
-
-CREATE TABLE `user_article_setting`
+# 使用者存取文章的權限設定
+CREATE TABLE `article_user_setting`
 (
     `user` int unsigned primary key,
     `setting` JSON  not null,
@@ -23,30 +27,66 @@ CREATE TABLE `user_article_setting`
     foreign key (`user`) references user(`id`)
 );
 
-show tables;
 
-insert into `user_article_setting` (user, setting)
-values
-(1,'{"max_radius":100,"min_radius":1}')
-on duplicate  key update user = 1 , setting = '{"max_radius":100,"min_radius":1}';
-
-SELECT * FROM `user_article_setting` WHERE setting = CAST('{"max_radius":100,"min_radius":1}' as JSON);
-
-select setting from `user_article_setting` where setting->'max_radius' = 100;
-SELECT * FROM `user_article_setting` WHERE setting->'$.max_radius' = 100;
-SELECT * FROM `user_article_setting` WHERE JSON_CONTAINS(setting, '100', '$.max_radius');
-UPDATE `user_article_setting` SET setting = JSON_INSERT(setting, '$.area', 'china') WHERE user = 1;
-UPDATE `user_article_setting` SET setting = JSON_SET(setting, '$.area1', 'china', '$.max_radius', '200') WHERE user = 1;
-UPDATE `user_article_setting` SET setting = JSON_REPLACE(setting, '$.area1', 'chinasss', '$.max_radius', '400') WHERE user = 1;
-UPDATE `user_article_setting` SET setting = JSON_REMOVE(setting, '$.area') WHERE user = 1;
+CREATE TABLE `article`
+(
+    `id` int unsigned primary key auto_increment,
+    `title` varchar(48)  not null ,
+    `content` mediumtext not null ,
+    `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ,
+    `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)
+;
+insert into `article` (title,content)
+    value('A test title', 'A test content')
+;
 
 
-SELECT * FROM `user_article_setting`;
+CREATE TABLE `article_details`
+(
+    `article` int unsigned primary key,
+    `coords` point not null,
+    foreign key (`article`) references article(`id`)
+)ENGINE=MyISAM
+;
+
+insert into `article_details` (article,coords)
+    value(1, Point( 25.040056717110396,121.51187490970621))
+;
+
+create table `tag_type`
+(
+    `id` int unsigned primary key auto_increment,
+    `type`  char(24) not null unique
+);
+
+insert into `tag_type` (type)
+    value('SYSTEM_TAG')
+;
+
+create table `tag_name`
+(
+    `id` int unsigned primary key auto_increment,
+    `name`  char(24) not null unique
+);
+
+insert into `tag_name` (name)
+    value('DELETE')
+;
+
+create table `article_tag`
+(
+    `tag_id` int unsigned primary key auto_increment,
+    `article_id`  int unsigned not null ,
+    `tag_name` int unsigned not null,
+    `tag_type`int unsigned not null,
+    unique (`tag_name` , `tag_type`),
+    unique (`article_id` , `tag_id`),
+    foreign key (`article_id`) references `article`(`id`),
+    foreign key (`tag_name`) references `tag_name`(`id`),
+    foreign key (`tag_type`) references `tag_type`(`id`)
+);
 
 
-select setting->'$.max_radius' from `user_article_setting`;
-
-select setting->'$.max_radius' from `user_article_setting`;
-
-
-select * from `user`;
+insert into `article_tag` (article_id,tag_name,tag_type)
+    value(1,1,1);

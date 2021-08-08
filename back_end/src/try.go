@@ -5,9 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/paulmach/orb"
+	"github.com/paulmach/orb/encoding/wkb"
+	"math"
+	"math/rand"
 	"net/smtp"
 	"rabbit_gather/src/db_operator"
 	"rabbit_gather/util"
+	"time"
 )
 
 type ABC string
@@ -120,7 +125,7 @@ func init() {
 	if err != nil {
 		panic(err.Error())
 	}
-	dbOperator = db_operator.GetOperator(db_operator.Mysql, config.DatabaseConfig)
+	dbOperator = db_operator.NewOperator(db_operator.Mysql, config.DatabaseConfig)
 	//fmt.Println("")
 }
 
@@ -160,15 +165,59 @@ func (m *ArticleAuthoritySetting) Scan(src interface{}) error {
 	return nil
 }
 
+var Random *rand.Rand
+
+func init() {
+	rand.Seed(time.Now().Unix())
+}
+
+func randInLength(i int) int {
+	return rand.Intn(int(math.Floor(math.Pow(10.0, float64(i)))))
+}
+
 //var log = logger.NewLoggerWrapper("TRY").TempLog()
 func main() {
-	stat := dbOperator.Statement("select setting from `user_article_setting` where user = ?;")
-	var setting ArticleAuthoritySetting
-	err := stat.QueryRow(1).Scan(&setting)
+	//d :=4
+	//fmt.Println(fmt.Sprintf(fmt.Sprintf("%%0%dd", d), randInLength(d)))
+	//var point []byte
+	//
+	//type Point struct {
+	//	util.SQLJsonAble
+	//	X float32 `json:"x"`
+	//	Y float32 `json:"y"`
+	//}
+
+	//articleID:= 1
+	//stat:= dbOperator.Statement("select a.title , a.content , b.coords\nfrom `article` as a left join `article_details` as b on a.id = b.article\nwhere a.id = ?;")
+	//var title , content string
+	//
+	//var point orb.Point
+	//err := stat.QueryRow(articleID).Scan(&title,&content,wkb.Scanner(&point))
+	//if err != nil {
+	//	panic(err.Error())
+	//}
+
+	stat := dbOperator.Statement("select a.title , a.content , ST_AsBinary(b.coords) \nfrom `article` as a left join `article_details` as b on a.id = b.article\nwhere a.id = ?;")
+	//var p orb.Point
+
+	row := stat.QueryRow(1)
+	var title, content string
+	var p orb.Point
+	err := row.Scan(&title, &content, wkb.Scanner(&p))
+	//
+	//err := stat.QueryRow().Scan(wkb.Scanner(&p))
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println(setting)
+	fmt.Println(p, title, content)
+
+	//stat := dbOperator.Statement("select setting from `user_article_setting` where user = ?;")
+	//var setting ArticleAuthoritySetting
+	//err := stat.QueryRow(1).Scan(&setting)
+	//if err != nil {
+	//	panic(err.Error())
+	//}
+	//fmt.Println(setting)
 	//err := redis_db.GetClient(0).IteratorAllKeyValue(context.Background(),
 	//	func(_ redis.Pipeliner, key string, value interface{}) (bool, error) {
 	//		fmt.Println(key," ",value)

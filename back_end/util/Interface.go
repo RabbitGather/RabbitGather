@@ -1,3 +1,3 @@
 package util
 
-type ShutdownCallback func(f func())
+type ShutdownCallback func(f func() error)

@@ -1,29 +1,14 @@
 package article_management
 
 import (
-	"github.com/gin-gonic/gin"
-	"net/http"
+	//"github.com/gorilla/websocket"
 	"rabbit_gather/src/db_operator"
 	"rabbit_gather/src/logger"
+	"rabbit_gather/src/websocket"
 	"rabbit_gather/util"
 )
 
-const (
-	//ACTION = "action"
-	//SEARCH = "search"
-	//LISTEN = "listen"
-	ERROR         = "ERROR"
-	UPDATE_RADIUS = "UPDATE_RADIUS"
-	MESSAGE       = "MESSAGE"
-	NEW           = "NEW"
-)
-
-var log = logger.NewLoggerWrapper("article_management")
-
-var dbOperator db_operator.DBOperator
-
 func init() {
-	//log = logger.NewLoggerWrapper("AccountManagement")
 	type Config struct {
 		DatabaseConfig db_operator.DatabaseConnectionConfiguration `json:"database_config"`
 	}
@@ -32,45 +17,31 @@ func init() {
 	if err != nil {
 		panic(err.Error())
 	}
-	dbOperator = db_operator.GetOperator(db_operator.Mysql, config.DatabaseConfig)
-	//fmt.Println("")
+	dbOperator = db_operator.NewOperator(db_operator.Mysql, config.DatabaseConfig)
 }
+
+var log = logger.NewLoggerWrapper("article_management")
+var dbOperator db_operator.DBOperator
+
+func init() {
+	ArticleChangeBroker = util.NewBroker(nil)
+	go ArticleChangeBroker.Start()
+}
+
+// The ArticleChangeBroker is a bridge to connect and transmit
+//real-time article change events
+var ArticleChangeBroker *util.Broker
 
 type ArticleManagement struct {
 }
 
 func (w *ArticleManagement) Close() error {
-	err := ConnectionManager.CloseAllConnection()
+	err := websocket.CloseAllConnection()
 	if err != nil {
 		return err
 	}
-	ArticleChangeBorker.Stop()
+	ArticleChangeBroker.Stop()
 	return nil
-}
-
-
-
-func (w *ArticleManagement) UpdateAuthorityHandler(c *gin.Context) {
-//UPDATE `user_article_setting` SET setting = JSON_REPLACE(setting, '$.area1', 'chinasss', '$.max_radius', '400') WHERE user = 1;
-	type ArticleAuthorityUpdateRequest struct {
-		MaxRadius uint `json:"max_radius,omitempty"`
-		MinRadius uint `json:"min_radius,omitempty"`
-	}
-	var setting ArticleAuthorityUpdateRequest
-	err := c.ShouldBindJSON(&setting)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound,gin.H{
-			"err":"wrong input",
-		})
-		return
-	}
-}
-
-var ArticleChangeBorker *util.Broker
-
-func init() {
-	ArticleChangeBorker = util.NewBroker(nil)
-	go ArticleChangeBorker.Start()
 }
 
 type PositionStruct struct {

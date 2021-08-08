@@ -31,6 +31,10 @@ func NewBroker(option *BrokerOptions) *Broker {
 	}
 }
 
+const MaximumBroadcastThreads = 1000
+
+var threadLimiter = make(chan struct{}, MaximumBroadcastThreads)
+
 func (b *Broker) Start() {
 	subs := map[*BrokerClient]struct{}{}
 	for {
@@ -47,23 +51,28 @@ func (b *Broker) Start() {
 		case m := <-b.publishlishCh:
 			msg := m[0]
 			allExcept := m[1].([]*BrokerClient)
-		loop:
 			for msgCh := range subs {
-				// msgCh is buffered, use non-blocking send to protect the broker:
-				if allExcept != nil {
-					for _, exceptMsgCh := range allExcept {
-						if exceptMsgCh == msgCh {
-							continue loop
+				doTransfer := func(bk *BrokerClient) {
+					if allExcept != nil {
+						for _, exceptMsgCh := range allExcept {
+							if exceptMsgCh == msgCh {
+								return
+							}
+						}
+					}
+					if msgCh.Filter == nil || msgCh.Filter(msg) {
+						// msgCh is buffered, use non-blocking send to protect the broker:
+						select {
+						case msgCh.C <- msg:
+						default:
 						}
 					}
 				}
-				if msgCh.Filter == nil || msgCh.Filter(msg) {
-					select {
-					case msgCh.C <- msg:
-					default:
-					}
-				}
-
+				threadLimiter <- struct{}{}
+				go func(msgCh *BrokerClient) {
+					doTransfer(msgCh)
+					<-threadLimiter
+				}(msgCh)
 			}
 		}
 	}

@@ -3,14 +3,15 @@ package web_server
 import (
 	"context"
 	"crypto/tls"
-	"github.com/gin-contrib/static"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"rabbit_gather/src/server"
+
 	//"log"
 	"net/http"
 	"net/url"
 	"rabbit_gather/src/logger"
 	"rabbit_gather/util"
-	"time"
 )
 
 /*
@@ -40,12 +41,10 @@ func init() {
 	}
 }
 
-func (w *WebServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
+func (w *WebServer) Startup(ctx context.Context) error {
 	log.DEBUG.Println("WebServer listen on : ", ServePath.String())
 
-	shutdownCallback(w.shutdown)
 	w.ginEngine = gin.Default()
-	//fmt.Println("WebServer - ServePath.String() : ", ServePath.String())
 	w.serverInst = &http.Server{
 		Addr:    ":" + ServePath.Port(),
 		Handler: w.ginEngine,
@@ -53,14 +52,8 @@ func (w *WebServer) Startup(ctx context.Context, shutdownCallback util.ShutdownC
 			ClientAuth: tls.NoClientCert,
 		},
 	}
-	w.ginEngine.Use(func(c *gin.Context) {
-		req := c.Request
-		if !util.CheckIDENTIFICATION_SYMBOL(req) {
-			c.AbortWithStatus(http.StatusForbidden)
-			log.DEBUG.Printf("reject direct connection from : %s", req.RemoteAddr)
-			return
-		}
-	})
+	w.ginEngine.Use(server.CheckIdentificationSymbol)
+
 	w.MountService(ctx)
 	go func() {
 		if err := w.serverInst.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -71,86 +64,20 @@ func (w *WebServer) Startup(ctx context.Context, shutdownCallback util.ShutdownC
 	return nil
 }
 
-func (w *WebServer) shutdown() {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+func (w *WebServer) Shutdown() error {
+	ctx, cancel := context.WithTimeout(context.Background(), server.ShutdownWaitTime)
 	defer cancel()
 
 	if err := w.serverInst.Shutdown(ctx); err != nil {
-		log.ERROR.Println("WebServer fail to shutdown:", err)
+		return fmt.Errorf("WebServer fail to Shutdown: %s", err.Error())
 	} else {
 		log.DEBUG.Println("WebServer closed.")
+		return nil
 	}
 }
 
 func (w *WebServer) MountService(ctx context.Context) {
-	//w.ginEngine.Use(w.appendPageLoadBitmask)
-	w.ginEngine.Use(static.Serve("/", static.LocalFile("public/web/", false)))
-	w.ginEngine.LoadHTMLFiles("public/web/index.html")
-
 	w.ginEngine.NoRoute(func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{
-			"title": "Main website",
-		})
+		c.File("public/web/index.html")
 	})
 }
-
-//
-//func (w *WebServer) appendPageLoadBitmask(c *gin.Context) {
-//	//	Add the PageLoad JWT in the head
-//	tokenInRequest := c.GetHeader("token")
-//	var token *auth.JWTToken
-//	if tokenInRequest == "" {
-//		//	new token
-//		var err error
-//		token, err = auth.NewSignedToken(auth.PermissionClaims{
-//			StandardClaims:       *auth.NewStandardClaims(),
-//			PermissionBitmask: auth.WaitVerificationCode,
-//		})
-//		if err != nil {
-//			c.AbortWithStatus(http.StatusInternalServerError)
-//			return
-//		}
-//	}else{
-//		//	append Bitmask
-//		var claims *auth.PermissionClaims
-//		var err error
-//		token, err = auth.ParseToken(tokenInRequest, claims)
-//		if err != nil {
-//			c.AbortWithStatus(http.StatusForbidden)
-//			return
-//		}
-//		claims = token.Claims.(*auth.PermissionClaims)
-//		if auth.BitMaskCheck(claims.PermissionBitmask, auth.WaitVerificationCode) {
-//			c.AbortWithStatus(http.StatusConflict)
-//			log.Println("SentVerificationCodeHandler - GetToken error")
-//			return
-//		}else{
-//			claims.PermissionBitmask = claims.PermissionBitmask|auth.WaitVerificationCode
-//		}
-//	}
-//
-//	c.Header(auth.TokenHeaderKey, token.GetSignedString())
-//}
-
-//func (w *WebServer)  indexHandler(c *gin.Context)() {
-//	fmt.Println("WebServer - c : ",c.Request)
-//	//
-//	//body := json.NewDecoder(c.Request.Body)
-//	//body.DisallowUnknownFields()
-//	//
-//	//userinfo := struct {
-//	//	Title string `json:"title"`
-//	//	Content string `json:"content"`
-//	//	Position string `json:"position"`
-//	//}{}
-//	//
-//	//err := body.Decode(&userinfo)
-//	//if err != nil {
-//	//	c.AbortWithStatus(http.StatusForbidden)
-//	//	log.Printf("postArticleHandler - body.Decode error : %s", err.Error())
-//	//	return
-//	//}
-//	//fmt.Println("Title : ",userinfo.Title)
-//	//fmt.Println("Content : ",userinfo.Content)
-//	//fmt.Println("Position : ",userinfo.Position)
-//}

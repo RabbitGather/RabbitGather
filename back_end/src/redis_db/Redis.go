@@ -52,7 +52,7 @@ type ClientWrapper struct {
 	redis.Client
 }
 
-var log = logger.NewLoggerWrapper("ClientWrapper")
+var log = logger.NewLoggerWrapper("Redis")
 
 const DefaultCount = 100
 const DefaultCursor = 0
@@ -65,33 +65,13 @@ func (c *ClientWrapper) DeleteAll(ctx context.Context, match string) error {
 	if err != nil {
 		return err
 	}
-	//pipe := c.Pipeline()
-	//defer func(pipe redis.Pipeliner) {
-	//	err := pipe.Close()
-	//	if err != nil {
-	//		log.ERROR.Println("Error when Close pipe: ", err.Error())
-	//	}
-	//}(pipe)
-	//defer func(pipe redis.Pipeliner, ctx context.Context) {
-	//	_, err := pipe.Exec(ctx)
-	//	if err != nil {
-	//		log.ERROR.Println("Error when Exec pipe: ", err.Error())
-	//	}
-	//}(pipe, ctx)
-	//
-	//iter := c.Client.Scan(ctx, DefaultCursor, match, DefaultCount).IteratorKeyValue()
-	//for iter.Next(ctx) {
-	//	pipe.Del(ctx, iter.Val())
-	//}
-	//if err := iter.Err(); err != nil {
-	//	return err
-	//}
 	return nil
 }
 
 func (c *ClientWrapper) IteratorAllKeyValue(ctx context.Context, f func(redis.Pipeliner, string, interface{}) (bool, error)) error {
 	return c.IteratorKeyValue(ctx, "*", f)
 }
+
 func (c *ClientWrapper) IteratorKeyValue(ctx context.Context, match string, f func(redis.Pipeliner, string, interface{}) (bool, error)) error {
 	return c.IteratorKeys(ctx, match, func(pipe redis.Pipeliner, key string) (bool, error) {
 		var value interface{}

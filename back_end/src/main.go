@@ -9,8 +9,8 @@ import (
 	"rabbit_gather/src/logger"
 	"rabbit_gather/src/neo4j_db"
 	"rabbit_gather/src/redis_db"
-	"rabbit_gather/src/reverse_proxy_server"
 	"rabbit_gather/src/server/api_server"
+	"rabbit_gather/src/server/reverse_proxy_server"
 	"rabbit_gather/src/server/web_server"
 	"syscall"
 )
@@ -28,30 +28,34 @@ func main() {
 	ctx, cancle := context.WithCancel(context.Background())
 	defer cancle()
 	reverseProxyServer := reverse_proxy_server.ReverseProxyServer{}
-	err := reverseProxyServer.Startup(ctx, AppendShutdownCallback)
+	err := reverseProxyServer.Startup(ctx)
 	if err != nil {
 		cancle()
 		panic(err.Error())
 	}
+	appendShutdownCallback(reverseProxyServer.Shutdown)
 
 	ctx1, _ := context.WithCancel(ctx)
 	webserver := web_server.WebServer{}
-	err = webserver.Startup(ctx1, AppendShutdownCallback)
+	err = webserver.Startup(ctx1)
 	if err != nil {
 		cancle()
 		panic(err.Error())
 	}
+	appendShutdownCallback(webserver.Shutdown)
+
 	ctx2, _ := context.WithCancel(ctx)
 	apiServer := api_server.APIServer{}
-	err = apiServer.Startup(ctx2, AppendShutdownCallback)
+	err = apiServer.Startup(ctx2)
 	if err != nil {
 		cancle()
 		panic(err.Error())
 	}
+	appendShutdownCallback(apiServer.Shutdown)
 
 	//ctx3, _ := context.WithCancel(ctx)
 	//websocketServer := websocket_server.WebsocketServer{}
-	//err = websocketServer.Startup(ctx3, AppendShutdownCallback)
+	//err = websocketServer.Startup(ctx3, appendShutdownCallback)
 	//if err != nil {
 	//	cancle()
 	//	panic(err.Error())
@@ -97,8 +101,8 @@ func runShutdownCallbacks() {
 	}
 }
 
-var shutdownCallbackQueue = []func(){}
+var shutdownCallbackQueue = []func() error{}
 
-func AppendShutdownCallback(f func()) {
+func appendShutdownCallback(f func() error) {
 	shutdownCallbackQueue = append(shutdownCallbackQueue, f)
 }

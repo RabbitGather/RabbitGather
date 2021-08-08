@@ -9,7 +9,6 @@ import (
 var log = logger.NewLoggerWrapper("account_management")
 
 func init() {
-	//log = logger.NewLoggerWrapper("AccountManagement")
 	type Config struct {
 		DatabaseConfig db_operator.DatabaseConnectionConfiguration `json:"database_config"`
 	}
@@ -18,10 +17,10 @@ func init() {
 	if err != nil {
 		panic(err.Error())
 	}
-	//dbOperator = db_operator.GetOperator(db_operator.Mysql, config.DatabaseConfig)
-	//fmt.Println("")
+
 }
 
+// The AccountManagement handle all operations related to the user account
 type AccountManagement struct {
 }
 

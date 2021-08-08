@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/kr/pretty"
@@ -13,23 +14,12 @@ import (
 	//cors "github.com/rs/cors/wrapper/gin"
 	"net/http"
 	"net/url"
-	"rabbit_gather/src/auth/status_bitmask"
-	"rabbit_gather/src/auth/token"
+	"rabbit_gather/src/auth/bitmask"
 	"rabbit_gather/src/logger"
 	"rabbit_gather/src/service/account_management"
 	"rabbit_gather/src/service/article_management"
 	"rabbit_gather/util"
-	"time"
 )
-
-/*
-靜態頁面服務器
-*/
-type APIServer struct {
-	serverInst       *http.Server
-	ginEngine        *gin.Engine
-	shutdownCallback util.ShutdownCallback
-}
 
 var ServePath *url.URL
 var log = logger.NewLoggerWrapper("APIServer")
@@ -49,30 +39,37 @@ func init() {
 	}
 }
 
-func (w *APIServer) Startup(ctx context.Context, shutdownCallback util.ShutdownCallback) error {
+var corsHandler gin.HandlerFunc
+
+func init() {
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:8080", "https://meowalien.com:443"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "token"}
+	corsHandler = cors.New(config)
+}
+
+// The APIServer provide all restful API, Websocket APIs.
+type APIServer struct {
+	serverInst *http.Server
+	ginEngine  *gin.Engine
+	//appendShutdownCallback util.ShutdownCallback
+	shutdownCallbackMethods []func() error
+}
+
+func (w *APIServer) Startup(ctx context.Context) error {
 	log.DEBUG.Println("APIServer listen on : ", ServePath.String())
-	w.shutdownCallback = shutdownCallback
-	shutdownCallback(w.shutdown)
+	w.shutdownCallbackMethods = []func() error{}
 	w.ginEngine = gin.Default()
-	//w.ginEngine.TrustedProxies = append(w.ginEngine.TrustedProxies,"127.0.0.1/0" )
-	//log.DEBUG.Println("APIServer - ServePath.String() : ", ServePath.String())
 	w.serverInst = &http.Server{
 		Addr:    ":" + ServePath.Port(),
 		Handler: w.ginEngine,
-		//ErrorLog: w.logger,
 		TLSConfig: &tls.Config{
-			//MinVersion: tls.VersionTLS12,
 			ClientAuth: tls.NoClientCert,
 		},
 	}
-	w.ginEngine.Use(func(c *gin.Context) {
-		req := c.Request
-		if !util.CheckIDENTIFICATION_SYMBOL(req) {
-			c.AbortWithStatus(http.StatusForbidden)
-			log.DEBUG.Printf("reject direct connection from : %s", req.RemoteAddr)
-			return
-		}
-	})
+	w.ginEngine.Use(server.CheckIdentificationSymbol)
+
 	w.MountService(ctx)
 	go func() {
 		if err := w.serverInst.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -83,43 +80,22 @@ func (w *APIServer) Startup(ctx context.Context, shutdownCallback util.ShutdownC
 	return nil
 }
 
-func (w *APIServer) shutdown() {
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+func (w *APIServer) Shutdown() error {
+	for i := len(w.shutdownCallbackMethods) - 1; i >= 0; i-- {
+		err := w.shutdownCallbackMethods[i]()
+		if err != nil {
+			log.ERROR.Println(err.Error())
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), server.ShutdownWaitTime)
 	defer cancel()
 
 	if err := w.serverInst.Shutdown(ctx); err != nil {
-		log.ERROR.Println("APIServer fail to shutdown:", err)
+		return fmt.Errorf("APIServer fail to Shutdown: %s", err.Error())
 	} else {
 		log.DEBUG.Println("APIServer closed.")
+		return nil
 	}
-
-}
-
-var corsHandler gin.HandlerFunc
-
-func init() {
-	//config := cors.Options{
-	//	AllowedOrigins:         []string{"http://localhost:8080", "https://meowalien.com:443"},
-	//	AllowOriginFunc:        nil,
-	//	AllowOriginRequestFunc: nil,
-	//	AllowedMethods: []string{
-	//		http.MethodGet,
-	//		http.MethodPost,
-	//		//http.MethodOptions,
-	//	},
-	//	AllowedHeaders:     []string{"token"},
-	//	ExposedHeaders:     nil,
-	//	MaxAge:             0,
-	//	AllowCredentials:   false,
-	//	OptionsPassthrough: false,
-	//	Debug:              false,
-	//}
-	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:8080", "https://meowalien.com:443"}
-	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}
-	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "token"}
-	corsHandler = cors.New(config)
 }
 
 type bodyLogWriter struct {
@@ -156,101 +132,60 @@ func (w *APIServer) MountService(ctx context.Context) {
 	w.ginEngine.Use(corsHandler)
 
 	userAccount := account_management.AccountManagement{}
-	w.ginEngine.POST("/account/login", w.permissionCheckHandler(status_bitmask.NoStatus), userAccount.LoginHandler)
-	w.ginEngine.POST("/account/signup", w.permissionCheckHandler(status_bitmask.WaitVerificationCode), userAccount.SignupHandler)
-	w.ginEngine.POST("/account/sent_verification_code", w.permissionCheckHandler(status_bitmask.NoStatus), userAccount.SentVerificationCodeHandler)
-	w.shutdownCallback(func() {
-		err := userAccount.Close()
-		if err != nil {
-			log.ERROR.Println(err.Error())
-		}
+	w.ginEngine.POST("/account/login", w.permissionCheckHandler(bitmask.NoStatus), userAccount.LoginHandler)
+	w.ginEngine.POST("/account/signup", w.permissionCheckHandler(bitmask.WaitVerificationCode), userAccount.SignupHandler)
+	w.ginEngine.POST("/account/sent_verification_code", w.permissionCheckHandler(bitmask.NoStatus), userAccount.SentVerificationCodeHandler)
+	w.appendShutdownCallback(func() error {
+		return userAccount.Close()
 	})
 
 	articleManagement := article_management.ArticleManagement{}
-	// 消改文章設定
-	w.ginEngine.POST("/article/settings", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.UpdateAuthorityHandler)
+	// 修改文章設定
+	w.ginEngine.POST("/article/settings", w.permissionCheckHandler(bitmask.NoStatus), articleManagement.UpdateAuthorityHandler)
 	// 查詢文章設定
-	w.ginEngine.GET("/article/settings", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.AskAuthorityHandler)
+	w.ginEngine.GET("/article/settings", w.permissionCheckHandler(bitmask.NoStatus), articleManagement.AskAuthorityHandler)
 	// 新增文章
-	w.ginEngine.POST("/article/new", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.PostArticleHandler)
+	w.ginEngine.POST("/article/new", w.permissionCheckHandler(bitmask.NoStatus), articleManagement.PostArticleHandler)
 	// 搜尋文章（會用到定位位置所以要post）
-	w.ginEngine.GET("/article/search", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.SearchArticleHandler)
+	w.ginEngine.GET("/article/search", w.permissionCheckHandler(bitmask.NoStatus), articleManagement.SearchArticleHandler)
 	// 取得指定文章
-	w.ginEngine.GET("/article/:id", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.GetArticleHandler)
+	w.ginEngine.GET("/article/:id", w.permissionCheckHandler(bitmask.NoStatus), articleManagement.GetArticleHandler)
 	// 監聽文章變更 - 連線後接收請求監聽某文章狀態（不可更詳細，因為不信任請求內容），設定最大監聽量
-	w.ginEngine.GET("/article/listen", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.ListenArticleChangeHandler)
+	w.ginEngine.GET("/article/listen", w.permissionCheckHandler(bitmask.NoStatus), articleManagement.ListenArticleChangeHandler)
 	// 刪除文章
-	w.ginEngine.DELETE("/article/:id", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.DeleteArticleHandler)
+	w.ginEngine.DELETE("/article/:id", w.permissionCheckHandler(bitmask.NoStatus), articleManagement.DeleteArticleHandler)
 	// 更新文章
-	w.ginEngine.PATCH("/article/:id", w.permissionCheckHandler(status_bitmask.NoStatus), articleManagement.UpdateArticleHandler)
-	w.shutdownCallback(func() {
-		err := articleManagement.Close()
-		if err != nil {
-			log.ERROR.Println(err.Error())
-		}
+	w.ginEngine.PATCH("/article/:id", w.permissionCheckHandler(bitmask.NoStatus), articleManagement.UpdateArticleHandler)
+	w.appendShutdownCallback(func() error {
+		return articleManagement.Close()
 	})
 }
 
-func (w *APIServer) useMiddleware(middleware func(c *gin.Context)) {
-	w.ginEngine.Use(middleware)
-}
-
-func (w *APIServer) HandleOptions(path string, handler gin.HandlerFunc, permissionCode status_bitmask.StatusBitmask) {
-	pathStatusRequirementMap[OPTIONS][path] = permissionCode
-	w.ginEngine.OPTIONS(path, handler)
-}
-func (w *APIServer) HandlePost(path string, handler gin.HandlerFunc, permissionCode status_bitmask.StatusBitmask) {
-	pathStatusRequirementMap[POST][path] = permissionCode
-	w.ginEngine.POST(path, handler)
-}
-func (w *APIServer) HandleGet(path string, handler func(c *gin.Context), permissionCode status_bitmask.StatusBitmask) {
-	pathStatusRequirementMap[GET][path] = permissionCode
-	w.ginEngine.GET(path, handler)
-}
-
 // check if client can access the API
-func (w *APIServer) permissionCheckHandler(statusBitmask status_bitmask.StatusBitmask) func(c *gin.Context) {
+func (w *APIServer) permissionCheckHandler(statusBitmask bitmask.StatusBitmask) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		fullPath := c.FullPath()
 
 		// this should not happen
-		if statusBitmask == status_bitmask.Reject {
+		if statusBitmask == bitmask.Reject {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "this API is temporarily closed"})
 			log.ERROR.Printf("Got Reject on: %s", fullPath)
 			return
 		}
 		// if the path doesn't need status to access
-		if statusBitmask == status_bitmask.NoStatus {
+		if statusBitmask == bitmask.NoStatus {
 			c.Next()
 			return
 		}
 
-		utilityClaims, exist, err := server.ContextAnalyzer{Context: c}.GetUtilityClaims()
+		utilityClaims, err := server.ContextAnalyzer(c).GetUtilityClaims()
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "server error"})
 			log.DEBUG.Println("error when GetUtilityClaims: ", err.Error())
 			return
-		} else if !exist {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "no token"})
-			log.DEBUG.Println("no token: ", pretty.Sprint(c.Request.Header))
-			return
 		}
-		//tokenRawString := c.GetHeader(token.TokenHeaderKey)
-		//if tokenRawString == "" {
-		//	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "no token"})
-		//	log.DEBUG.Println("no token: ", pretty.Sprint(c.Request.Header))
-		//	return
-		//}
-		//
-		////var utilityClaims = claims.UtilityClaims{}
-		//utilityClaims, err := token.ParseToken(tokenRawString)
-		//if err != nil {
-		//	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token not valid"})
-		//	log.DEBUG.Printf("ParseToken error : %s", err.Error())
-		//	return
-		//}
-		var statusClaims claims.StatusClaims
-		//log.TempLog().Println("utilityClaims: ",utilityClaims)
+
+		var statusClaims claims.StatusClaim
 		err = utilityClaims.GetSubClaims(&statusClaims)
 		if err != nil {
 			if err == claims.NoSuchClaimsError {
@@ -267,12 +202,11 @@ func (w *APIServer) permissionCheckHandler(statusBitmask status_bitmask.StatusBi
 
 		}
 
-		if !status_bitmask.BitMaskCheck(statusBitmask, statusClaims.StatusBitmask) {
+		if !bitmask.MaskCheck(statusBitmask, statusClaims.StatusBitmask) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "you do not have permission to access this api"})
 			log.DEBUG.Printf("reject access to: %s\nClaims: %s", fullPath, pretty.Sprint(utilityClaims))
 			return
 		}
-		c.Set(token.UtilityClaimKey, utilityClaims)
 		c.Next()
 	}
 }
@@ -288,7 +222,7 @@ const (
 	OPTIONS HttpMethod = "OPTIONS"
 )
 
-var pathStatusRequirementMap = map[HttpMethod]map[string]status_bitmask.StatusBitmask{
+var pathStatusRequirementMap = map[HttpMethod]map[string]bitmask.StatusBitmask{
 	GET:     {},
 	POST:    {},
 	PUT:     {},
@@ -297,9 +231,7 @@ var pathStatusRequirementMap = map[HttpMethod]map[string]status_bitmask.StatusBi
 	OPTIONS: {},
 }
 
-//var pathStatusRequirementMap_RWMutex = sync.RWMutex{}
-
-func (w *APIServer) getStatusRequirement(method HttpMethod, path string) (status_bitmask.StatusBitmask, bool) {
+func (w *APIServer) getStatusRequirement(method HttpMethod, path string) (bitmask.StatusBitmask, bool) {
 	switch method {
 	case GET:
 	case POST:
@@ -309,43 +241,12 @@ func (w *APIServer) getStatusRequirement(method HttpMethod, path string) (status
 	case OPTIONS:
 	default:
 		log.ERROR.Println("Not supported http method: ", method)
-		return status_bitmask.Reject, true
+		return bitmask.Reject, true
 	}
 	p, exist := pathStatusRequirementMap[method][path]
 	return p, exist
 }
 
-func (w *APIServer) contextWrapper(c *gin.Context) {
-
+func (w *APIServer) appendShutdownCallback(f func() error) {
+	w.shutdownCallbackMethods = append(w.shutdownCallbackMethods, f)
 }
-
-//func getAPIStatusRequiredWithPath(path string) auth.StatusBitmask {
-//	return pathPermissionMapPost[path]
-//}
-
-// Check if this path need status to access
-//func needPermissionCheck(method, path string) bool {
-//	exist := false
-//	var status auth.StatusBitmask
-//	switch method {
-//	//an empty string means GET.
-//	case "":
-//		permissionBitMask, exist = pathPermissionMapGet[path]
-//	case "GET":
-//		permissionBitMask, exist = pathPermissionMapGet[path]
-//	case "POST":
-//		permissionBitMask, exist = pathPermissionMapPost[path]
-//	default:
-//		log.ERROR.Println("unexpected method: " + method)
-//		return false
-//	}
-//	if !exist {
-//		//log.ERROR.Println("")
-//		return false
-//		//log.TempLog("method, path: %s,%s",method, path)
-//		//log.TempLog("permissionBitMask: %d ",permissionBitMask)
-//		//return permissionBitMask != auth.AllStatus
-//	} else {
-//		return false
-//	}
-//}

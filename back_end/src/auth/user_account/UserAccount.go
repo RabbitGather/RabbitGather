@@ -3,16 +3,16 @@ package user_account
 import (
 	"database/sql"
 	"errors"
-	"golang.org/x/crypto/bcrypt"
-	"rabbit_gather/src/auth/status_bitmask"
+	"rabbit_gather/src/auth/bitmask"
 	"rabbit_gather/src/auth/token"
-	claims2 "rabbit_gather/src/auth/token/claims"
+	"rabbit_gather/src/auth/token/claims"
 	"rabbit_gather/src/db_operator"
 	"rabbit_gather/src/logger"
 	"rabbit_gather/util"
 )
 
 var log = logger.NewLoggerWrapper("user_account")
+
 var dbOperator db_operator.DBOperator
 
 func init() {
@@ -24,34 +24,68 @@ func init() {
 	if err != nil {
 		panic(err.Error())
 	}
-	dbOperator = db_operator.GetOperator(db_operator.Mysql, config.DatabaseConfig)
+	dbOperator = db_operator.NewOperator(db_operator.Mysql, config.DatabaseConfig)
 }
 
-type UserInformation struct {
-	Username   string                       `json:"username"`
-	Password   string                       `json:"password"`
-	Email      string                       `json:"email,omitempty"`
-	Phone      string                       `json:"phone,omitempty"`
-	Permission status_bitmask.StatusBitmask `json:"permission"`
+// CreateUserStruct is a struct required when creating  a new user
+type CreateUserStruct struct {
+	Username   string                `json:"username"`
+	Password   string                `json:"password"`
+	Email      string                `json:"email,omitempty"`
+	Phone      string                `json:"phone,omitempty"`
+	Permission bitmask.StatusBitmask `json:"permission"`
 }
 
-var UserNameExist = errors.New("user name already exist")
+// ErrUserNameConflict will be thrown when the username is already exist in user table
+var ErrUserNameConflict = errors.New("user name already exist")
+var ErrEmailConflict = errors.New("email already exist")
+var ErrPhoneConflict = errors.New("phone already exist")
 
-func CreateNewUserAccount(userinfo UserInformation) (*UserAccount, error) {
-	_, exist, err := CheckUserExist(userinfo.Username)
+// CreateNewUserAccount creat a new user record in DB tables, and return *UserAccount.
+// throw ErrUserNameConflict when the username given is duplicate in user table.
+// throw ErrEmailConflict when the email given is duplicate in user_information table.
+// throw ErrEmailConflict when the phone given is duplicate in user_information table.
+func CreateNewUserAccount(userinfo CreateUserStruct) (*UserAccount, error) {
+	_, exist, err := checkUserExist(userinfo.Username)
 	if err != nil {
 		return nil, err
 	}
 	if exist {
-		return nil, UserNameExist
+		return nil, ErrUserNameConflict
 	}
-
-	statment := dbOperator.Statement("insert into user ( name, password, api_permission_bitmask) value (?,?,?);")
-	password, err := HashPassword(userinfo.Password)
+	_, exist, err = checkPhoneExist(userinfo.Phone)
 	if err != nil {
 		return nil, err
 	}
-	res, err := statment.Exec(userinfo.Username, password, uint32(userinfo.Permission))
+	if exist {
+		return nil, ErrPhoneConflict
+	}
+	_, exist, err = checkEmailExist(userinfo.Email)
+	if err != nil {
+		return nil, err
+	}
+	if exist {
+		return nil, ErrEmailConflict
+	}
+	tx, err := dbOperator.Begin()
+	defer func(stmt *sql.Tx) {
+		e := tx.Rollback()
+		if e != sql.ErrTxDone && e != nil {
+			log.ERROR.Println(e.Error())
+		}
+	}(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	insertUserStatement := tx.Stmt(dbOperator.Statement("insert into user ( name, password, api_permission_bitmask) value (?,?,?);"))
+	insertUserInformationStatement := tx.Stmt(dbOperator.Statement("insert into `user_information`(`user`,`email`,`phone`) value (?,?,?);"))
+
+	password, err := util.HashPassword(userinfo.Password)
+	if err != nil {
+		return nil, err
+	}
+	res, err := insertUserStatement.Exec(userinfo.Username, password, uint32(userinfo.Permission))
 	if err != nil {
 		log.DEBUG.Println(err.Error())
 		return nil, err
@@ -61,6 +95,15 @@ func CreateNewUserAccount(userinfo UserInformation) (*UserAccount, error) {
 		log.DEBUG.Println(err.Error())
 		return nil, err
 	}
+	_, err = insertUserInformationStatement.Exec(id, userinfo.Email, userinfo.Phone)
+	if err != nil {
+		log.DEBUG.Println(err.Error())
+		return nil, err
+	}
+	if e := tx.Commit(); e != nil {
+		log.DEBUG.Println(e.Error())
+		return nil, e
+	}
 	return &UserAccount{
 		UserName:             userinfo.Username,
 		UserID:               uint32(id),
@@ -68,14 +111,13 @@ func CreateNewUserAccount(userinfo UserInformation) (*UserAccount, error) {
 	}, nil
 }
 
-func CheckUserExist(username string) (uint64, bool, error) {
-	statment := dbOperator.Statement("select id from user where name = ? limit 1;")
+func checkEmailExist(email string) (interface{}, bool, error) {
+	statement := dbOperator.Statement("select `user` from `user_information`where email =?;")
 	var userid = uint64(0)
-	err := statment.QueryRow(username).Scan(&userid)
+	err := statement.QueryRow(email).Scan(&userid)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, false, nil
-
 		}
 		log.ERROR.Println("error when scanning userid")
 		return 0, false, err
@@ -87,13 +129,49 @@ func CheckUserExist(username string) (uint64, bool, error) {
 	}
 }
 
+func checkPhoneExist(phone string) (interface{}, bool, error) {
+	statement := dbOperator.Statement("select `user` from `user_information`where phone =?;")
+	var userid = uint64(0)
+	err := statement.QueryRow(phone).Scan(&userid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, false, nil
+		}
+		log.ERROR.Println("error when scanning userid")
+		return 0, false, err
+	}
+	if userid != 0 {
+		return userid, true, nil
+	} else {
+		return 0, false, nil
+	}
+}
+
+func checkUserExist(username string) (uint64, bool, error) {
+	statement := dbOperator.Statement("select id from user where name = ? limit 1;")
+	var userid = uint64(0)
+	err := statement.QueryRow(username).Scan(&userid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, false, nil
+		}
+		log.ERROR.Println("error when scanning userid")
+		return 0, false, err
+	}
+	if userid != 0 {
+		return userid, true, nil
+	} else {
+		return 0, false, nil
+	}
+}
+
+// The UserAccount is represented of a user account provide some function to
+// operate user account.
 type UserAccount struct {
 	UserName             string
 	UserID               uint32
-	APIPermissionBitmask status_bitmask.StatusBitmask
+	APIPermissionBitmask bitmask.StatusBitmask
 }
-
-const NormalUserPermission = status_bitmask.Login
 
 func GetUserAccountByName(username string) (*UserAccount, error) {
 	statment := dbOperator.Statement("select id,api_permission_bitmask from user where name = ? limit 1;")
@@ -110,7 +188,7 @@ func GetUserAccountByName(username string) (*UserAccount, error) {
 	return &UserAccount{
 		UserID:               id,
 		UserName:             username,
-		APIPermissionBitmask: status_bitmask.StatusBitmask(api_permission_bitmask),
+		APIPermissionBitmask: bitmask.StatusBitmask(api_permission_bitmask),
 	}, nil
 }
 
@@ -126,31 +204,27 @@ func (u *UserAccount) CheckPassword(password string) error {
 		}
 		return err
 	}
-	if CheckPasswordHash(password, passwordHash) {
+	if util.CheckPasswordHash(password, passwordHash) {
 		return nil
 	} else {
 		return ErrorPasswordWrong
 	}
 }
 
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(bytes), err
+func (u *UserAccount) GetUserClaim() claims.UserClaim {
+	return claims.UserClaim{
+		UserName: u.UserName,
+		UserID:   u.UserID,
+	}
 }
 
-func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
-}
-
-// Create a token with this user claims
-func (u *UserAccount) NewToken(status status_bitmask.StatusBitmask) (string, error) {
-	theClaims := claims2.UtilityClaims{
-		//claims2.StandardClaimsName: token.NewStandardClaims(),
-		claims2.StatusClaimsName: claims2.StatusClaims{
-			StatusBitmask: status,
+// NewToken Create a token with claims with this user situations
+func (u *UserAccount) NewToken() (string, error) {
+	theClaims := claims.UtilityClaim{
+		claims.StatusClaimsName: claims.StatusClaim{
+			StatusBitmask: u.APIPermissionBitmask,
 		},
-		claims2.UserClaimsName: claims2.UserClaims{
+		claims.UserClaimsName: claims.UserClaim{
 			UserName: u.UserName,
 			UserID:   u.UserID,
 		},
@@ -163,7 +237,3 @@ func (u *UserAccount) NewToken(status status_bitmask.StatusBitmask) (string, err
 	}
 	return signedTokenString, nil
 }
-
-//func GetUserByClaims(userClaims *UtilityClaims) user_account {
-//	panic("Not implement")
-//}

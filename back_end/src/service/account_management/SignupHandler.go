@@ -3,7 +3,7 @@ package account_management
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"rabbit_gather/src/auth/status_bitmask"
+	"rabbit_gather/src/auth/bitmask"
 	"rabbit_gather/src/auth/user_account"
 )
 
@@ -15,6 +15,7 @@ type SignupUserInput struct {
 	Phone            string `json:"phone,omitempty"`
 }
 
+// The SignupHandler handle user signup request.
 func (w *AccountManagement) SignupHandler(c *gin.Context) {
 	var userinput SignupUserInput
 	if err := c.ShouldBindJSON(&userinput); err != nil {
@@ -45,15 +46,15 @@ func (w *AccountManagement) SignupHandler(c *gin.Context) {
 		return
 	}
 
-	userAccount, err := user_account.CreateNewUserAccount(user_account.UserInformation{
+	userAccount, err := user_account.CreateNewUserAccount(user_account.CreateUserStruct{
 		Username:   userinput.Username,
 		Password:   userinput.Password,
 		Email:      userinput.Email,
 		Phone:      userinput.Phone,
-		Permission: user_account.NormalUserPermission,
+		Permission: bitmask.Login,
 	})
 	if err != nil {
-		if err == user_account.UserNameExist {
+		if err == user_account.ErrUserNameConflict {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "user name exist."})
 			log.DEBUG.Printf("CreateNewUserAccount error : %s", err.Error())
 			return
@@ -65,7 +66,7 @@ func (w *AccountManagement) SignupHandler(c *gin.Context) {
 
 	}
 
-	userToken, err := userAccount.NewToken(status_bitmask.Login)
+	userToken, err := userAccount.NewToken()
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "create new user token error"})
 		log.ERROR.Printf("Signup - GetToken error : %s", err.Error())

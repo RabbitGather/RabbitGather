@@ -12,7 +12,7 @@ type loginAuth struct {
 	username, password string
 }
 
-func LoginAuth(username, password string) smtp.Auth {
+func newLoginAuth(username, password string) smtp.Auth {
 	return &loginAuth{username, password}
 }
 
@@ -34,23 +34,29 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
+type MailSender interface {
+	SendMail(subject string, msg string, to ...string) error
+}
+
 type GmailSender struct {
 	userMail     string
 	userPassword string
 	auth         smtp.Auth
 }
 
-func (s *GmailSender) SendMail(msg, subject, to string) error {
+func (s *GmailSender) SendMail(subject string, msg string, to ...string) error {
 	m := fmt.Sprintf("Subject: %s\n%s", subject, msg)
-	err := smtp.SendMail("smtp.gmail.com:587", s.auth, s.userMail, []string{to}, []byte(m))
+	err := smtp.SendMail("smtp.gmail.com:587", s.auth, s.userMail, to, []byte(m))
 	if err != nil {
 		return err
 	}
 	return nil
 }
+
+// NewGmailSender create a GmailSender
 func NewGmailSender(userMail, username, password string) *GmailSender {
 	return &GmailSender{
 		userMail: userMail,
-		auth:     LoginAuth(username, password),
+		auth:     newLoginAuth(username, password),
 	}
 }

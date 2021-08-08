@@ -5,6 +5,7 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"net/http"
 	"rabbit_gather/src/neo4j_db"
+	"rabbit_gather/src/service/article_management/events"
 	"rabbit_gather/util"
 	"time"
 )
@@ -55,7 +56,7 @@ func (w *ArticleManagement) PostArticleHandler(c *gin.Context) {
 	c.AbortWithStatusJSON(http.StatusOK, gin.H{
 		"id": theID,
 	})
-	ArticleChangeBorker.Publish(&ArticleChangeEvent{
+	ArticleChangeBroker.Publish(&events.ArticleChangeEvent{
 		Event:     NEW,
 		Timestamp: time.Now().Unix(),
 		ID:        theID,
