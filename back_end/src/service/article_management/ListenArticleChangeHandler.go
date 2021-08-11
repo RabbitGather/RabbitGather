@@ -4,38 +4,39 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"rabbit_gather/src/service/article_management/events"
 	"rabbit_gather/src/websocket"
+	"rabbit_gather/src/websocket/action"
+	"rabbit_gather/src/websocket/events"
 	"rabbit_gather/util"
 	"strings"
 	"sync"
 	"time"
 )
 
-const (
-	ERROR                    = "error"
-	UPDATE_RADIUS            = "update_radius"
-	MESSAGE                  = "message"
-	NEW                      = "new"
-	DELETE                   = "delete"
-	ListenOnNewArticleChange = "listen_on_new_article_change"
-)
+//const (
+//	ERROR                    = "error"
+//	UPDATE_RADIUS            = "update_radius"
+//	MESSAGE                  = "message"
+//	NEW                      = "new"
+//	DELETE                   = "delete"
+//	ListenOnNewArticleChange = "listen_on_new_article_change"
+//)
 
 type ListenArticleChangeRequest struct {
-	Position          PositionStruct `form:"position"  binding:"required" json:"position"`
-	Radius            float32        `form:"radius"  binding:"required" json:"radius"`
-	Timestamp         int64          `json:"timestamp"`
-	ListeningArticles sync.Map
-	ConnectionID      int64
+	Position          util.Point2D `form:"position"  binding:"required" json:"position"`
+	Radius            float32      `form:"radius"  binding:"required" json:"radius"`
+	Timestamp         int64        `json:"timestamp"`
+	ListeningArticles sync.Map     `json:"-"`
+	ConnectionID      int64        `json:"-"`
 }
 type UserActionMessage struct {
-	Action string  `json:"action"   binding:"required"  form:"action"`
-	Radius float32 `json:"radius ,omitempty" form:"radius"`
-	Text   string  `json:"text" form:"text"`
+	Action action.ActionType `json:"action"   binding:"required"  form:"action"`
+	Radius float32           `json:"radius ,omitempty" form:"radius"`
+	Text   string            `json:"text" form:"text"`
 }
 
-// ListenArticleChangeHandler will create a WebSocket connection with client and sent
-// Events when the listing articles emit change event.
+// ListenArticleChangeHandler will create a WebSocket connection with the client,
+// listening Actions from the user, and sent events when the listing articles emit change event.
 func (w *ArticleManagement) ListenArticleChangeHandler(c *gin.Context) {
 	var request ListenArticleChangeRequest
 	err := c.ShouldBindQuery(&request)
@@ -67,30 +68,30 @@ func (w *ArticleManagement) ListenArticleChangeHandler(c *gin.Context) {
 	handler.OnTextMessageEvent = onTextMessageEvent(handler, brokerClient, &request)
 }
 
-// this filter will pick up *events.ArticleChangeEvent type Event
-// return true to pick up
+// The filter will pick up needed Events from the broadcast
 func filter(request *ListenArticleChangeRequest, handler *websocket.WebSocketMaintainer) func(interface{}) bool {
 	return func(msg interface{}) bool {
-		changeEvent, ok := msg.(*events.ArticleChangeEvent)
-		if !ok {
-			return false
-		}
-		switch changeEvent.Event {
-		case NEW:
-			distance := float32(util.Distance(changeEvent.Position.X, changeEvent.Position.Y, request.Position.X, request.Position.Y))
-			if changeEvent.Timestamp > request.Timestamp && request.Radius > distance {
-				request.Timestamp = changeEvent.Timestamp
-				handler.SentEvent(*changeEvent, func(err error) {
+		switch inputEvent := msg.(type) {
+		// when the new article creates in the client listing zone, pick it up
+		case *events.NewArticleEvent:
+			distance := float32(util.Distance(inputEvent.Position.X, inputEvent.Position.Y, request.Position.X,
+				request.Position.Y))
+
+			if inputEvent.Timestamp > request.Timestamp && request.Radius > distance {
+				request.Timestamp = inputEvent.Timestamp
+				handler.SentEvent(*inputEvent, func(err error) {
 					log.ERROR.Println("error when SentEvent: ", err.Error())
 				}, func() {
-					log.DEBUG.Println("sent event to: ", request.ConnectionID, "Event: ", fmt.Sprint(*changeEvent))
+					log.DEBUG.Println("sent event to: ", request.ConnectionID, "Event: ", fmt.Sprint(*inputEvent))
 				})
 				return true
 			}
-		case DELETE:
+
+		// when listening articles be deleted, pick it up.
+		case *events.DeleteArticleEvent:
 			rs := false
 			request.ListeningArticles.Range(func(key, value interface{}) bool {
-				if key == changeEvent.ID {
+				if key == inputEvent.ArticleID {
 					rs = true
 					return false
 				}
@@ -98,36 +99,103 @@ func filter(request *ListenArticleChangeRequest, handler *websocket.WebSocketMai
 			})
 			return rs
 		}
-
 		return false
 	}
 }
 
+// handleEvent will listen on the broker client given and do different process according to the type of Event received.
+func handleEvent(connectionID int64, handler *websocket.WebSocketMaintainer, brokerClient *util.BrokerClient, request *ListenArticleChangeRequest) {
+	log.DEBUG.Println("Connection OPEN: ", connectionID)
+	request.ConnectionID = connectionID
+	//	start to listen new events
+	for ce := range brokerClient.C {
+		switch inputEvent := ce.(type) {
+		// when the new article creates in the client listing zone, append it into ListeningArticles map
+		case *events.NewArticleEvent:
+			request.ListeningArticles.Store(inputEvent.ArticleID, struct{}{})
+
+		// when listening articles be deleted, remove it from ListeningArticles map
+		case *events.DeleteArticleEvent:
+			request.ListeningArticles.Delete(inputEvent.ArticleID)
+
+		default:
+			evt, ok := ce.(*events.Event)
+			if !ok {
+				log.ERROR.Println("error brokerClient.C receive a non *events.Event input")
+				continue
+			} else {
+				log.ERROR.Println("error not supported event type: ", (*evt).GetEventType())
+				continue
+			}
+		}
+		// sent the event to client
+		handler.SentEvent(*(ce.(*events.Event)), func(err error) {
+			log.ERROR.Println("error when SentEvent: ", err.Error())
+		}, func() {
+			log.DEBUG.Println("sent event to: ", connectionID, "Event: ", fmt.Sprint(*(ce.(*events.Event))))
+		})
+	}
+}
+
+// onOpenConnection will be emmit when the websocket connection create.
+func onOpenConnection(handler *websocket.WebSocketMaintainer, brokerClient *util.BrokerClient, request *ListenArticleChangeRequest) func(connectionID int64) {
+	return func(connectionID int64) {
+		log.DEBUG.Println("Connection OPEN: ", connectionID)
+		request.ConnectionID = connectionID
+		//	start to listen new events
+		go handleEvent(connectionID, handler, brokerClient, request)
+	}
+}
+
+// onTextMessageEvent process the Actions from client
 func onTextMessageEvent(handler *websocket.WebSocketMaintainer, brokerClient *util.BrokerClient, request *ListenArticleChangeRequest) func(messages ...websocket.TextMessage) {
+	sentError := func(message string) {
+		handler.SentEvent(events.ErrorEvent{
+			Event:   websocket.ErrorEvent,
+			Message: message,
+		}, func(err error) {
+			if err != nil {
+				log.ERROR.Println("fail to sent error message")
+			}
+		}, nil)
+	}
+
 	return func(messages ...websocket.TextMessage) {
 		for _, m := range messages {
-			var newAction UserActionMessage
+			type ActionOnly struct {
+				Action action.ActionType `json:"action"`
+			}
 
+			var newAction ActionOnly
 			e := m.UnmarshalJson(&newAction)
 			if e != nil {
-				handler.SentEvent(events.ArticleErrorEvent{
-					Event:   ERROR,
-					Message: "format wrong",
-				}, func(err error) {
-					if err != nil {
-						log.ERROR.Println("fail to sent error message")
-					}
-				}, nil)
+				sentError("format wrong")
 			}
 
 			log.DEBUG.Println("Receive TextMessageEvent: ", m.String())
 			switch newAction.Action {
-			case UPDATE_RADIUS:
-				request.Radius = newAction.Radius
-			case MESSAGE:
-				log.DEBUG.Println("Message from client: ", strings.TrimSpace(newAction.Text))
-			case ListenOnNewArticleChange:
-
+			case action.UpdateRadius:
+				var updateRadiusAction action.UpdateRadiusAction
+				ee := m.UnmarshalJson(&newAction)
+				if ee != nil {
+					sentError("the given Action field is UpdateRadius but UnmarshalJson as UpdateRadiusAction fail")
+				}
+				request.Radius = updateRadiusAction.NewRadius
+			case action.TextMessage:
+				var textAction action.TextAction
+				ee := m.UnmarshalJson(&textAction)
+				if ee != nil {
+					sentError("the given Action field is TextMessage but UnmarshalJson as TextAction fail")
+				}
+				log.DEBUG.Println("Message from client: ", strings.TrimSpace(textAction.Text))
+			case action.ListenOnNewArticle:
+				var listenOnNewArticleAction action.ListenOnNewArticleAction
+				ee := m.UnmarshalJson(&listenOnNewArticleAction)
+				if ee != nil {
+					sentError("the given Action field is ListenOnNewArticle but UnmarshalJson as ListenOnNewArticleAction fail")
+				}
+				request.ListeningArticles.Store(listenOnNewArticleAction.ArticleID, struct{}{})
+				log.DEBUG.Println("ListeningArticles action from client: ", listenOnNewArticleAction.ArticleID)
 			default:
 				log.ERROR.Println("unknown action type: ", newAction.Action)
 			}
@@ -138,40 +206,5 @@ func onTextMessageEvent(handler *websocket.WebSocketMaintainer, brokerClient *ut
 func onCloseEvent(handler *websocket.WebSocketMaintainer, brokerClient *util.BrokerClient, request *ListenArticleChangeRequest) func(message ...*websocket.RawMessage) {
 	return func(message ...*websocket.RawMessage) {
 		ArticleChangeBroker.Unsubscribe(brokerClient)
-	}
-}
-
-func onOpenConnection(handler *websocket.WebSocketMaintainer, brokerClient *util.BrokerClient, request *ListenArticleChangeRequest) func(connectionID int64) {
-	return func(connectionID int64) {
-		log.DEBUG.Println("Connection OPEN: ", connectionID)
-		request.ConnectionID = connectionID
-		//	start to listen new article update event
-		go func() {
-			for ce := range brokerClient.C {
-				changeEvent := ce.(*events.ArticleChangeEvent)
-				switch changeEvent.Event {
-
-				// when the new article creates within the client listening radius.
-				case NEW:
-					request.ListeningArticles.Store(changeEvent.ID, struct{}{})
-					handler.SentEvent(*changeEvent, func(err error) {
-						log.ERROR.Println("error when SentEvent: ", err.Error())
-					}, func() {
-						log.DEBUG.Println("sent event to: ", connectionID, "Event: ", fmt.Sprint(*changeEvent))
-					})
-
-					//distance := float32(util.Distance(changeEvent.Position.X, changeEvent.Position.Y, request.Position.X, request.Position.Y))
-					//if changeEvent.Timestamp > request.Timestamp && request.Radius > distance {
-					//	request.Timestamp = changeEvent.Timestamp
-					//	handler.SentEvent(*changeEvent, func(err error) {
-					//		log.ERROR.Println("error when SentEvent: ", err.Error())
-					//	}, func() {
-					//		log.DEBUG.Println("sent event to: ", connectionID, "Event: ", fmt.Sprint(*changeEvent))
-					//	})
-					//}
-				}
-
-			}
-		}()
 	}
 }

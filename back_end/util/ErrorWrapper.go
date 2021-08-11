@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// ErrorWrapper is a tool to deal with Nested error
 type ErrorWrapper struct {
 	Err error
 }

@@ -2,7 +2,6 @@ package article_management
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/kr/pretty"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"net/http"
 	"rabbit_gather/src/neo4j_db"
@@ -10,11 +9,13 @@ import (
 )
 
 type SearchArticleRequest struct {
-	Position  PositionStruct `json:"position" form:"position"  binding:"required"`
-	MinRadius float64        `json:"min_radius" form:"min_radius"`
-	MaxRadius float64        `json:"max_radius" form:"max_radius" binding:"required"`
+	Position  util.Point2D `json:"position" form:"position"  binding:"required"`
+	MinRadius float64      `json:"min_radius" form:"min_radius"`
+	MaxRadius float64      `json:"max_radius" form:"max_radius" binding:"required"`
 }
 
+// SearchArticleHandler will return articles according to specify conditions.
+// Se SearchArticleRequest
 func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 	var searchArticleRequest SearchArticleRequest
 	err := c.ShouldBindQuery(&searchArticleRequest)
@@ -25,15 +26,19 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 		log.DEBUG.Println("wrong input: ", err.Error())
 		return
 	}
-	log.TempLog().Println(pretty.Sprint(searchArticleRequest))
-	log.TempLog().Println("searchArticleRequest.Position.X: ", searchArticleRequest.Position.X)
-	log.TempLog().Println("25.040056717110396: ", 25.040056717110396)
+	//log.TempLog().Println(pretty.Sprint(searchArticleRequest))
+	//log.TempLog().Println("searchArticleRequest.Position.X: ", searchArticleRequest.Position.X)
+	//log.TempLog().Println("25.040056717110396: ", 25.040056717110396)
 	session := neo4j_db.GetDriver().NewSession(neo4j.SessionConfig{})
-	defer session.Close()
+	defer func(session neo4j.Session) {
+		e := session.Close()
+		if e != nil {
+			log.ERROR.Println("error when close session")
+		}
+	}(session)
 
 	result, err := session.Run(
 		util.GetFileStoredPlainText("sql/search_article_with_radius.cyp"),
-		//"MATCH  (position:Position)-[]-(article:Article)\nWITH  article ,position ,distance(position.pt, point({longitude:$longitude, latitude:$latitude})) as distance\n  WHERE distance>$min_radius AND distance< $max_radius\nRETURN position , article , distance;",
 		map[string]interface{}{
 			"longitude":  searchArticleRequest.Position.X,
 			"latitude":   searchArticleRequest.Position.Y,
@@ -42,7 +47,7 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 		},
 	)
 
-	log.TempLog().Println("result: ", result.Record())
+	//log.TempLog().Println("result: ", result.Record())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"err": "server error",
@@ -51,25 +56,24 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 		return
 	}
 	type Article struct {
-		ID        int64          `json:"id"`
-		Title     string         `json:"title"`
-		Content   string         `json:"content"`
-		Timestamp int64          `json:"timestamp"`
-		Position  PositionStruct `json:"position"`
-		Distance  float64        `json:"distance"`
+		ID        int64        `json:"id"`
+		Title     string       `json:"title"`
+		Content   string       `json:"content"`
+		Timestamp int64        `json:"timestamp"`
+		Position  util.Point2D `json:"position"`
+		Distance  float64      `json:"distance"`
 	}
-	resultArticles := []Article{}
+	var resultArticles []Article
 	for result.Next() {
 		record := result.Record()
 
 		article := Article{
-			Position: PositionStruct{},
+			Position: util.Point2D{},
 		}
 		art, exist := record.Get("article")
 		if exist {
 			articleProps := art.(neo4j.Node).Props
 			if id, exist := articleProps["id"]; exist {
-				//log.TempLog().Println("id: ",id)
 				article.ID = id.(int64)
 			}
 			if title, exist := articleProps["title"]; exist {
@@ -87,10 +91,6 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 		if exist {
 			positionProps := position.(neo4j.Node).Props
 			if point, exist := positionProps["pt"]; exist {
-				//log.TempLog().Println("point: ",point)
-				//log.TempLog().Println("point.(neo4j.Point2D).X: ",point.(neo4j.Point2D).X)
-				//log.TempLog().Println("point.(neo4j.Point2D).Y: ",point.(neo4j.Point2D).Y)
-
 				article.Position.Y = point.(neo4j.Point2D).Y
 				article.Position.X = point.(neo4j.Point2D).X
 			}

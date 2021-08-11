@@ -17,7 +17,7 @@ var driver neo4j.Driver
 var log = logger.NewLoggerWrapper("neo4j_db")
 
 func init() {
-	err := util.ParseJsonConfic(&config, "config/neo4j_db.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/neo4j_db.config.json")
 	if err != nil {
 		panic(err.Error())
 	}

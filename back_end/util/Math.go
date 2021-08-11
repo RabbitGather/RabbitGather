@@ -3,9 +3,9 @@ package util
 import "math"
 
 func CutIntMax(target, max int64) int64 {
-	return CutIntBetweenPint(target, 1, max)
+	return CutIntBetween(target, 1, max)
 }
-func CutIntBetweenPint(target, min, max int64) int64 {
+func CutIntBetween(target, min, max int64) int64 {
 	if min < 1 {
 		panic("min must >= 1")
 	}

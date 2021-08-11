@@ -24,6 +24,7 @@ func init() {
 	log.TempLog().Println("TEMP Logger Test.")
 }
 func main() {
+	defer finalize()
 	log.DEBUG.Println("main start")
 	ctx, cancle := context.WithCancel(context.Background())
 	defer cancle()
@@ -63,7 +64,6 @@ func main() {
 
 	waitForShutdown(ctx)
 	log.DEBUG.Println("Main process end.")
-	finalize()
 }
 
 func finalize() {

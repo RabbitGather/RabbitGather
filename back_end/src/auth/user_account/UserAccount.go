@@ -20,7 +20,7 @@ func init() {
 		DatabaseConfig db_operator.DatabaseConnectionConfiguration `json:"database_config"`
 	}
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/auth_user_account.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/auth_user_account.config.json")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -53,14 +53,14 @@ func CreateNewUserAccount(userinfo CreateUserStruct) (*UserAccount, error) {
 	if exist {
 		return nil, ErrUserNameConflict
 	}
-	_, exist, err = checkPhoneExist(userinfo.Phone)
+	exist, err = checkPhoneExist(userinfo.Phone)
 	if err != nil {
 		return nil, err
 	}
 	if exist {
 		return nil, ErrPhoneConflict
 	}
-	_, exist, err = checkEmailExist(userinfo.Email)
+	exist, err = checkEmailExist(userinfo.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -78,14 +78,14 @@ func CreateNewUserAccount(userinfo CreateUserStruct) (*UserAccount, error) {
 		return nil, err
 	}
 
-	insertUserStatement := tx.Stmt(dbOperator.Statement("insert into user ( name, password, api_permission_bitmask) value (?,?,?);"))
+	insertUserStatement := tx.Stmt(dbOperator.Statement("insert into user ( name, password,randomSalt, api_permission_bitmask) value (?,?,?,?);\n"))
 	insertUserInformationStatement := tx.Stmt(dbOperator.Statement("insert into `user_information`(`user`,`email`,`phone`) value (?,?,?);"))
 
-	password, err := util.HashPassword(userinfo.Password)
+	password, randomSalt, err := util.HashPassword(userinfo.Password)
 	if err != nil {
 		return nil, err
 	}
-	res, err := insertUserStatement.Exec(userinfo.Username, password, uint32(userinfo.Permission))
+	res, err := insertUserStatement.Exec(userinfo.Username, password, randomSalt, uint32(userinfo.Permission))
 	if err != nil {
 		log.DEBUG.Println(err.Error())
 		return nil, err
@@ -111,42 +111,35 @@ func CreateNewUserAccount(userinfo CreateUserStruct) (*UserAccount, error) {
 	}, nil
 }
 
-func checkEmailExist(email string) (interface{}, bool, error) {
-	statement := dbOperator.Statement("select `user` from `user_information`where email =?;")
-	var userid = uint64(0)
-	err := statement.QueryRow(email).Scan(&userid)
+// checkEmailExist check if the user's email exist.
+func checkEmailExist(email string) (bool, error) {
+	statement := dbOperator.Statement("select `email` from `user_information`where email =?;")
+	err := statement.QueryRow(email).Scan(new(string))
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, false, nil
+			return false, nil
 		}
 		log.ERROR.Println("error when scanning userid")
-		return 0, false, err
+		return false, err
 	}
-	if userid != 0 {
-		return userid, true, nil
-	} else {
-		return 0, false, nil
-	}
+	return true, nil
 }
 
-func checkPhoneExist(phone string) (interface{}, bool, error) {
-	statement := dbOperator.Statement("select `user` from `user_information`where phone =?;")
-	var userid = uint64(0)
-	err := statement.QueryRow(phone).Scan(&userid)
+// checkPhoneExist check if the user's phone exist.
+func checkPhoneExist(phone string) (bool, error) {
+	statement := dbOperator.Statement("select `phone` from `user_information`where phone =?;")
+	err := statement.QueryRow(phone).Scan(new(string))
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, false, nil
+			return false, nil
 		}
 		log.ERROR.Println("error when scanning userid")
-		return 0, false, err
+		return false, err
 	}
-	if userid != 0 {
-		return userid, true, nil
-	} else {
-		return 0, false, nil
-	}
+	return true, nil
 }
 
+// checkUserExist check if the user account exist.
 func checkUserExist(username string) (uint64, bool, error) {
 	statement := dbOperator.Statement("select id from user where name = ? limit 1;")
 	var userid = uint64(0)
@@ -173,6 +166,7 @@ type UserAccount struct {
 	APIPermissionBitmask bitmask.StatusBitmask
 }
 
+// GetUserAccountByName get the user's id and api_permission_bitmask from DB by username.
 func GetUserAccountByName(username string) (*UserAccount, error) {
 	statment := dbOperator.Statement("select id,api_permission_bitmask from user where name = ? limit 1;")
 	var id uint32
@@ -194,29 +188,31 @@ func GetUserAccountByName(username string) (*UserAccount, error) {
 
 var ErrorPasswordWrong = errors.New("password wrong")
 
+// CheckPassword check if the password given is the password of this user.
 func (u *UserAccount) CheckPassword(password string) error {
-	statment := dbOperator.Statement("select password from user where id = ? limit 1;")
+	statement := dbOperator.Statement("select password,randomSalt from user where id = ? limit 1;")
 	var passwordHash string
-	err := statment.QueryRow(u.UserID).Scan(&passwordHash)
+	var randomSalt string
+	err := statement.QueryRow(u.UserID).Scan(&passwordHash, &randomSalt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return errors.New("error when get password from user table on db")
 		}
 		return err
 	}
-	if util.CheckPasswordHash(password, passwordHash) {
+	if util.CheckPasswordHash(password, passwordHash, randomSalt) {
 		return nil
 	} else {
 		return ErrorPasswordWrong
 	}
 }
 
-func (u *UserAccount) GetUserClaim() claims.UserClaim {
-	return claims.UserClaim{
-		UserName: u.UserName,
-		UserID:   u.UserID,
-	}
-}
+//func (u *UserAccount) GetUserClaim() claims.UserClaim {
+//	return claims.UserClaim{
+//		UserName: u.UserName,
+//		UserID:   u.UserID,
+//	}
+//}
 
 // NewToken Create a token with claims with this user situations
 func (u *UserAccount) NewToken() (string, error) {

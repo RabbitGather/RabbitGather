@@ -19,7 +19,7 @@ const (
 	ALL  = ^MUTE
 )
 
-var LogLevelMask = ALL
+var LogLevelMask uint8
 var DebugColor util.ColorCode
 var WaringColor util.ColorCode
 var ErrorColor util.ColorCode
@@ -36,15 +36,19 @@ func init() {
 		TempLogOpen bool  `json:"temp_log_open"`
 	}
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/log.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/log.config.json")
 	if err != nil {
 		panic(err.Error())
 	}
+
 	if config.MinLogLevel < -1 {
 		panic("The log level must >= -1")
 	}
 	if config.MinLogLevel >= 0 {
 		LogLevelMask = uint8(config.MinLogLevel)
+	}
+	if config.MinLogLevel == -1 {
+		LogLevelMask = ALL
 	}
 	DebugColor = util.ColorCode(config.DebugColor)
 	WaringColor = util.ColorCode(config.WaringColor)
@@ -106,15 +110,16 @@ func (l *LoggerWrapper) TempLog() *Logger {
 // NewLoggerWrapper Create a new LoggerWrapper with given prefix,
 // The prefix will be print before all log rows
 func NewLoggerWrapper(prefix string) *LoggerWrapper {
-	if LogLevelMask == MUTE {
+	if LogLevelMask != MUTE {
+		fmt.Printf("Cteate logger: %s\n", prefix)
 		return &LoggerWrapper{
-			ERROR:   CreateMuteLogger(),
-			WARNING: CreateMuteLogger(),
-			DEBUG:   CreateMuteLogger(),
+			ERROR:   CreateErrorLogger(prefix),
+			WARNING: CreateWaringLogger(prefix),
+			DEBUG:   CreateDebugLogger(prefix),
 		}
+	} else {
+		return NewMuteLoggerWrapper()
 	}
-	fmt.Printf("Cteate logger: %s\n", prefix)
-	return NewMuteLoggerWrapper()
 }
 
 // NewMuteLoggerWrapper create a mute logger that will do nothing when use

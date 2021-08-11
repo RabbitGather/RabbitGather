@@ -2,8 +2,7 @@ package util
 
 import (
 	"fmt"
-	"math/rand"
-	"time"
+	"regexp"
 )
 
 const (
@@ -69,20 +68,31 @@ const (
 	BgHiWhite
 )
 
+// ColorSting Color the given string to the given color
 func ColorSting(s string, color ColorCode) string {
 	return fmt.Sprintf("\033[%dm%s\033[00m", color, s)
 }
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
+//var englishLetter = []rune(AllASCII)
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCD EFGHIJKLMNOPQRSTUVWXYZ")
+var PlainEnglishOnlyRegexp = regexp.MustCompile(fmt.Sprintf(`^[%s%s]+$`, AllASCII, "_"))
 
-func RandStringRunes(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
+//
+//func PlainEnglishAndNumberOnly(s string) bool {
+//loop: for _, letterRune := range englishLetter {
+//	for _, i2 := range s {
+//		if i2 == letterRune {
+//			continue loop
+//		}
+//	}
+//}
+//	return false
+//}
+//
+//func RandStringRunes(n int) string {
+//	b := make([]rune, n)
+//	for i := range b {
+//		b[i] = englishLetter[rand.Intn(len(englishLetter))]
+//	}
+//	return string(b)
+//}

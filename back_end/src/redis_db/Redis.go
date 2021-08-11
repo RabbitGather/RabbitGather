@@ -21,7 +21,7 @@ func init() {
 		AllDatabase []DBConfig `json:"all_database"`
 	}
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/redis.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/redis.config.json")
 	if err != nil {
 		panic(err.Error())
 	}

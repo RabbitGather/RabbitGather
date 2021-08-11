@@ -13,7 +13,7 @@ func init() {
 		DatabaseConfig db_operator.DatabaseConnectionConfiguration `json:"database_config"`
 	}
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/account_management.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/account_management.config.json")
 	if err != nil {
 		panic(err.Error())
 	}

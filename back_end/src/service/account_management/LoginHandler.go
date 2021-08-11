@@ -10,8 +10,8 @@ import (
 func (w *AccountManagement) LoginHandler(c *gin.Context) {
 	log.DEBUG.Println("Enter LoginHandler")
 	userInput := struct {
-		Username string `json:"username"  binding:"required"`
-		Password string `json:"password"  binding:"required"`
+		Username string `json:"username" from:"username"  binding:"required"`
+		Password string `json:"password" from:"password" binding:"required"`
 	}{}
 
 	err := c.ShouldBindJSON(&userInput)
@@ -37,7 +37,7 @@ func (w *AccountManagement) LoginHandler(c *gin.Context) {
 	err = userInst.CheckPassword(userInput.Password)
 	if err != nil {
 		if err == user_account.ErrorPasswordWrong {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "wrong input"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"err": "password wrong"})
 			log.DEBUG.Println("password wrong: ", err.Error())
 			return
 		} else {

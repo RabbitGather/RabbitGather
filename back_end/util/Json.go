@@ -1,61 +1,31 @@
 package util
 
 import (
-	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"io"
 	"os"
 )
 
-func ParseJsonConfic(sst interface{}, filePath string) (err error) {
+// ParseFileJsonConfig read the json config file into the given struct
+func ParseFileJsonConfig(sst interface{}, filePath string) (err error) {
 	configFile, err := os.Open(filePath)
 	if err != nil {
 		return
 	}
-	jsonParser := json.NewDecoder(configFile)
-	err = jsonParser.Decode(sst)
-	if err != nil {
-		return
-	}
-	err = configFile.Close()
-	return
+	return ParseReaderJson(sst, configFile)
 }
 
-func ParseRequestJson(rawbody io.ReadCloser, st interface{}) error {
-	body := json.NewDecoder(rawbody)
+// ParseReaderJson read the json from io.ReadCloser into the given struct
+func ParseReaderJson(st interface{}, reader io.ReadCloser) error {
+	defer func(rawbody io.ReadCloser) {
+		err := rawbody.Close()
+		if err != nil {
+			panic("cannot close the reader")
+		}
+	}(reader)
+	body := json.NewDecoder(reader)
 	body.DisallowUnknownFields()
 	err := body.Decode(st)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// SQLJsonAble provide a simple default solution
-// to make struct use as Json in SQL query
-type SQLJsonAble struct {
-}
-
-func (m SQLJsonAble) Value() (driver.Value, error) {
-	j, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	return driver.Value(j), nil
-}
-
-func (m *SQLJsonAble) Scan(src interface{}) error {
-	var source []byte
-	switch src.(type) {
-	case []uint8:
-		source = src.([]byte)
-	case nil:
-		return nil
-	default:
-		return errors.New("incompatible type")
-	}
-	err := json.Unmarshal(source, src)
 	if err != nil {
 		return err
 	}

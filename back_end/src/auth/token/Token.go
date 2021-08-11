@@ -19,6 +19,7 @@ var log = logger.NewLoggerWrapper("token")
 
 var privateKey *rsa.PrivateKey
 var publicKey *rsa.PublicKey
+var Issuer string
 
 //var Issuer string
 var SignMethod jwt.SigningMethod
@@ -30,10 +31,11 @@ func init() {
 		JwtPrivateKeyFile string `json:"jwt_private_key_file"`
 		JwtPublicKeyFile  string `json:"jwt_public_key_file"`
 		SignMethod        string `json:"sign_method"`
+		//Issuer string `json:"issuer"`
 	}
 
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/JWT.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/jwt.config.json")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -70,6 +72,7 @@ func init() {
 
 	privateKey = getPrivateKey(config.JwtPrivateKeyFile)
 	publicKey = getPublicKey(config.JwtPublicKeyFile)
+
 }
 
 // ParseToken Parse the jwt token from string and fill in UtilityClaim.

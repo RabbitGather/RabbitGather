@@ -3,8 +3,9 @@ package article_management
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"rabbit_gather/src/service/article_management/events"
-	"time"
+	//"rabbit_gather/src/websocket"
+	"rabbit_gather/src/websocket/events"
+	//"time"
 )
 
 type DeleteArticleRequest struct {
@@ -37,14 +38,15 @@ func (w *ArticleManagement) DeleteArticleHandler(c *gin.Context) {
 		return
 	}
 	c.AbortWithStatus(http.StatusNoContent)
-	ArticleChangeBroker.Publish(&events.ArticleChangeEvent{
-		Event:     DELETE,
-		Timestamp: time.Now().Unix(),
-		ID:        deleteArticleRequest.TargetArticleID,
+
+	ArticleChangeBroker.Publish(&events.DeleteArticleEvent{
+		Event: events.DeleteArticle,
+		//Timestamp: time.Now().Unix(),
+		ArticleID: deleteArticleRequest.TargetArticleID,
 	})
 }
 
-func tagArticleAsDelete(articleID uint) error {
+func tagArticleAsDelete(articleID int64) error {
 	stat := dbOperator.Statement("insert into `article_tag` (article_id,tag_name,tag_type) value(?,?,?)")
 	_, err := stat.Exec(articleID, Delete, System)
 	if err != nil {

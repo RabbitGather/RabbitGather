@@ -23,7 +23,7 @@ func (d *MysqlOperator) Statement(s string) *sql.Stmt {
 	}
 	stat, err := d.db.Prepare(s)
 	if err != nil {
-		panic("Statement : " + s + " illegal")
+		panic("Statement : " + s + " illegal: " + err.Error())
 	}
 	d.statementCatch[s] = stat
 	return stat

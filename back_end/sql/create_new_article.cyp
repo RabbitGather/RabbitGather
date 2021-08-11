@@ -1,13 +1,22 @@
 CREATE
-  (:User {name: $username})-
-  [:Create {timestamp: timestamp()}]
+  (:User {id: $user_id})-
+  [:Create]
   ->(:Article {
-    id:      $id,
-    title:   $title,
-    content: $content, timestamp: timestamp()
+    id:      $article_id
   })
-    -[:CreateAt {timestamp: timestamp()}]
-    ->(:Position {time: timestamp(), pt: point({longitude: $longitude, latitude: $latitude})});
+    -[:At]
+    ->(:Position {pt: point({x: $x, y: $y})});
+//
+//
+//
+//CREATE
+//  (:User {id:2})-
+//  [:Create]
+//  ->(:Article {
+//    id:     1
+//  })
+//    -[:At]
+//    ->(:Position {pt: point({x:24.211683466965695, y: 120.68043825584145})});
 
 
 //CREATE

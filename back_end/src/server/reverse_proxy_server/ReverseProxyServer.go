@@ -29,14 +29,14 @@ var log = logger.NewLoggerWrapper("ReverseProxyServer")
 
 func init() {
 	type Config struct {
-		CERT_FILE         string
-		KEY_FILE          string
-		ServePath         string
-		MEOWALIEN_COM_CRT string
-		RedirectAddrMap   map[string]string
+		CERT_FILE         string            `json:"cert_file"`
+		KEY_FILE          string            `json:"key_file"`
+		ServePath         string            `json:"serve_path"`
+		MEOWALIEN_COM_CRT string            `json:"meowalien_com_crt"`
+		RedirectAddrMap   map[string]string `json:"redirect_addr_map"`
 	}
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/reverse_proxy_server.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/reverse_proxy_server.config.json")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -154,12 +154,12 @@ func (s *ReverseProxyServer) distributor(c *gin.Context) {
 		req.URL.Host = realAddrURL.Host
 
 		// to let the target server make sure the request come from here
-		req.Header.Add(util.IDENTIFICATION_SYMBOL_KEY, util.IDENTIFICATION_SYMBOL)
-		req.Header.Set(util.ClientIP_KEY, c.ClientIP())
+		req.Header.Add(server.IDENTIFICATION_SYMBOL_KEY, server.IDENTIFICATION_SYMBOL)
+		req.Header.Set(server.ClientIP_KEY, c.ClientIP())
 	}
 	proxy.ModifyResponse = func(response *http.Response) error {
-		response.Header.Del(util.IDENTIFICATION_SYMBOL_KEY)
-		response.Header.Del(util.ClientIP_KEY)
+		response.Header.Del(server.IDENTIFICATION_SYMBOL_KEY)
+		response.Header.Del(server.ClientIP_KEY)
 		return nil
 	}
 	proxy.ServeHTTP(c.Writer, c.Request)

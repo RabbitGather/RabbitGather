@@ -9,21 +9,19 @@ import (
 	"io/ioutil"
 	"net/http"
 	"rabbit_gather/src/logger"
-	"rabbit_gather/src/service/article_management/events"
+	"rabbit_gather/src/websocket/events"
 	"rabbit_gather/util"
 	"time"
 )
 
-type SocketEvent uint16
-
 const (
-	CloseEvent SocketEvent = iota
-	PingEvent
-	TextMessageEvent
-	BinaryMessageEvent
-	OpenEvent
-	PongEvent
-	ErrorEvent
+	CloseEvent         = "close_event"
+	PingEvent          = "ping_event"
+	TextMessageEvent   = "text_event"
+	BinaryMessageEvent = "binary_event"
+	OpenEvent          = "open_event"
+	PongEvent          = "pong_event"
+	ErrorEvent         = "error_event"
 )
 
 const (
@@ -83,6 +81,7 @@ func (c *WebSocketMaintainer) Initialize() {
 	go c.writePump()
 }
 
+// The readPump will continuously read new reader which contains new message from client, and emit a corresponding event
 func (c *WebSocketMaintainer) readPump() {
 	c.SetReadLimit(c.maxMessageSize)
 	err := c.SetReadDeadline(time.Now().Add(c.pongWait))
@@ -117,7 +116,7 @@ func (c *WebSocketMaintainer) readPump() {
 				//case websocket.CloseTryAgainLater: //1013
 				//case websocket.CloseTLSHandshake: //1015
 				default:
-					c.log.WARNING.Printf("Close with code:%d, %s", errorCode, util.WebsocketCloseCodeNumberToString(errorCode))
+					c.log.WARNING.Printf("Close with code:%d, %s", errorCode, WebsocketCloseCodeNumberToString(errorCode))
 				}
 			} else {
 				c.log.DEBUG.Println("NextReader error: ", err.Error())
@@ -125,7 +124,6 @@ func (c *WebSocketMaintainer) readPump() {
 			break
 		}
 		message := &RawMessage{
-			//MessageType: messageType,
 			Reader: reader,
 		}
 		switch messageType {
@@ -134,17 +132,14 @@ func (c *WebSocketMaintainer) readPump() {
 			if c.OnCloseEvent != nil {
 				c.OnCloseEvent(message)
 			}
-			//c.Emit(CloseEvent, message)
 		case websocket.PingMessage:
 			if c.OnPingEvent != nil {
 				c.OnPingEvent(message)
 			}
-			//c.Emit(PingEvent, message)
 		case websocket.PongMessage:
 			if c.OnPongEvent != nil {
 				c.OnPongEvent(message)
 			}
-			//c.Emit(PongEvent, message)
 		default:
 			switch messageType {
 			case websocket.TextMessage:
@@ -162,6 +157,7 @@ func (c *WebSocketMaintainer) readPump() {
 	}
 }
 
+// The writePump will listen on sentMessageChannel and sent message to the client
 func (c *WebSocketMaintainer) writePump() {
 	c.sentMessageChannel = make(chan RawMessage, 256)
 	ticker := time.NewTicker(c.pingPeriod)
@@ -253,9 +249,10 @@ func (c *WebSocketMaintainer) SentEvent(event events.Event,
 	errorCallback func(err error), afterSentCallback func()) {
 	if errorCallback == nil {
 		errorCallback = func(err error) {
-			c.log.ERROR.Println("fail to sent ArticleErrorEvent")
+			c.log.ERROR.Println("fail to sent ErrorEvent")
 		}
 	}
+
 	b, err := json.Marshal(event)
 
 	if err != nil {
@@ -369,4 +366,57 @@ func CreateWebSocketConnection(writer http.ResponseWriter, request *http.Request
 	eventHandler.Conn = connection
 	KeepConnection(eventHandler)
 	return nil
+}
+
+const (
+	CloseNormalClosure           = 1000
+	CloseGoingAway               = 1001
+	CloseProtocolError           = 1002
+	CloseUnsupportedData         = 1003
+	CloseNoStatusReceived        = 1005
+	CloseAbnormalClosure         = 1006
+	CloseInvalidFramePayloadData = 1007
+	ClosePolicyViolation         = 1008
+	CloseMessageTooBig           = 1009
+	CloseMandatoryExtension      = 1010
+	CloseInternalServerErr       = 1011
+	CloseServiceRestart          = 1012
+	CloseTryAgainLater           = 1013
+	CloseTLSHandshake            = 1015
+)
+
+//RFC_6455
+func WebsocketCloseCodeNumberToString(errorCode int) string {
+	switch errorCode {
+	case CloseNormalClosure: //1000
+		return "CloseNormalClosure"
+	case CloseGoingAway: //1001
+		return "CloseGoingAway"
+	case CloseProtocolError: //1002
+		return "CloseProtocolError"
+	case CloseUnsupportedData: //1003
+		return "CloseUnsupportedData"
+	case CloseNoStatusReceived: //1005
+		return "CloseNoStatusReceived"
+	case CloseAbnormalClosure: //1006
+		return "CloseAbnormalClosure"
+	case CloseInvalidFramePayloadData: //1007
+		return "CloseInvalidFramePayloadData"
+	case ClosePolicyViolation: //1008
+		return "ClosePolicyViolation"
+	case CloseMessageTooBig: //1009
+		return "CloseMessageTooBig"
+	case CloseMandatoryExtension: //1010
+		return "CloseMandatoryExtension"
+	case CloseInternalServerErr: //1011
+		return "CloseInternalServerErr"
+	case CloseServiceRestart: //1012
+		return "CloseServiceRestart"
+	case CloseTryAgainLater: //1013
+		return "CloseTryAgainLater"
+	case CloseTLSHandshake: //1015
+		return "CloseTLSHandshake"
+	default:
+		return "Unknown"
+	}
 }

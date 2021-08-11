@@ -30,7 +30,7 @@ func init() {
 		ServePath string
 	}
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/web_server.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/web_server.config.json")
 	if err != nil {
 		panic(err.Error())
 	}

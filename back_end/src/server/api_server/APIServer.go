@@ -29,7 +29,7 @@ func init() {
 		ServePath string
 	}
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/api_server.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/api_server.config.json")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -51,9 +51,8 @@ func init() {
 
 // The APIServer provide all restful API, Websocket APIs.
 type APIServer struct {
-	serverInst *http.Server
-	ginEngine  *gin.Engine
-	//appendShutdownCallback util.ShutdownCallback
+	serverInst              *http.Server
+	ginEngine               *gin.Engine
 	shutdownCallbackMethods []func() error
 }
 
@@ -178,10 +177,10 @@ func (w *APIServer) permissionCheckHandler(statusBitmask bitmask.StatusBitmask) 
 			return
 		}
 
-		utilityClaims, err := server.ContextAnalyzer(c).GetUtilityClaims()
+		utilityClaims, err := server.ContextAnalyzer(c).GetUtilityClaim()
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "server error"})
-			log.DEBUG.Println("error when GetUtilityClaims: ", err.Error())
+			log.DEBUG.Println("error when GetUtilityClaim: ", err.Error())
 			return
 		}
 

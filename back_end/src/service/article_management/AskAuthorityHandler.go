@@ -11,7 +11,7 @@ import (
 
 // ask the user authority in ArticleManagement
 func (w *ArticleManagement) AskAuthorityHandler(c *gin.Context) {
-	utilityClaims, err := server.ContextAnalyzer(c).GetUtilityClaims()
+	utilityClaims, err := server.ContextAnalyzer(c).GetUtilityClaim()
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"err": "server error",
@@ -45,13 +45,13 @@ func (w *ArticleManagement) AskAuthorityHandler(c *gin.Context) {
 }
 
 type ArticleAuthoritySetting struct {
-	util.SQLJsonAble
+	util.JsonTypeStruct
 	MaxRadius uint `json:"max_radius,omitempty"`
 	MinRadius uint `json:"min_radius,omitempty"`
 }
 
 func (w *ArticleManagement) getUserArticleAuthority(userid uint32) (*ArticleAuthoritySetting, error) {
-	stat := dbOperator.Statement("select setting from `user_article_setting` where user = ?;")
+	stat := dbOperator.Statement("select setting from `article_user_setting` where user = ?;")
 	var setting ArticleAuthoritySetting
 	err := stat.QueryRow(userid).Scan(&setting)
 	if err != nil {

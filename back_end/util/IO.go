@@ -4,6 +4,7 @@ import "io/ioutil"
 
 var plainTextMap = map[string]string{}
 
+// GetFileStoredPlainText will read the file content at the first time and then cache it.
 func GetFileStoredPlainText(fileName string) string {
 	if resStr, exist := plainTextMap[fileName]; exist {
 		return resStr

@@ -13,7 +13,7 @@ func init() {
 		DatabaseConfig db_operator.DatabaseConnectionConfiguration `json:"database_config"`
 	}
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/article_management.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/article_management.config.json")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -42,9 +42,4 @@ func (w *ArticleManagement) Close() error {
 	}
 	ArticleChangeBroker.Stop()
 	return nil
-}
-
-type PositionStruct struct {
-	Y float64 `json:"y" form:"y"  binding:"required"`
-	X float64 `json:"x"  form:"x"  binding:"required"`
 }

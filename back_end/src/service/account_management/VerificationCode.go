@@ -24,7 +24,7 @@ func init() {
 		VerificationCodeLength int    `json:"verification_code_length"`
 	}
 	var config Config
-	err := util.ParseJsonConfic(&config, "config/mail_server.config.json")
+	err := util.ParseFileJsonConfig(&config, "config/mail_server.config.json")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -92,21 +92,28 @@ func (w *AccountManagement) SentVerificationCodeHandler(c *gin.Context) {
 		return
 	}
 
-	utilityClaims, err := server.ContextAnalyzer(c).GetUtilityClaims()
+	utilityClaims, err := server.ContextAnalyzer(c).GetUtilityClaim()
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "server error"})
-		log.DEBUG.Println("error when GetUtilityClaims: ", err.Error())
-		return
+		if err == server.ErrTokenIsEmpty {
+			utilityClaims = &claims.UtilityClaim{
+				claims.StandardClaimsName: claims.NewStandardClaims(),
+				claims.StatusClaimsName:   claims.StatusClaim{StatusBitmask: bitmask.WaitVerificationCode},
+			}
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": "server error"})
+			log.DEBUG.Println("error when GetUtilityClaim: ", err.Error())
+			return
+		}
+	} else {
+		var statusClaims claims.StatusClaim
+		err = utilityClaims.GetSubClaims(&statusClaims)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token wrong"})
+			log.DEBUG.Println("GetSubClaims error : ", err.Error())
+			return
+		}
+		statusClaims.AppendBitMask(bitmask.WaitVerificationCode)
 	}
-
-	var statusClaims claims.StatusClaim
-	err = utilityClaims.GetSubClaims(&statusClaims)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"err": "token wrong"})
-		log.DEBUG.Println("GetSubClaims error : ", err.Error())
-		return
-	}
-	statusClaims.AppendBitMask(bitmask.WaitVerificationCode)
 
 	var standardClaims claims.StandardClaim
 	_ = utilityClaims.GetSubClaims(&standardClaims)
