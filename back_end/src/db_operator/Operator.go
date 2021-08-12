@@ -57,7 +57,6 @@ func GetMysqlOperator(d DatabaseConnectionConfiguration) *MysqlOperator {
 	if err != nil {
 		log.ERROR.Println(err.Error())
 	}
-	//fmt.Printf("%s - %s  Connected!\n", Mysql, connectionString)
 	dbo = &MysqlOperator{
 		db: db,
 	}
@@ -68,6 +67,11 @@ func GetMysqlOperator(d DatabaseConnectionConfiguration) *MysqlOperator {
 }
 
 type DBOperator interface {
+	// StatementFromFile will read the SQL from a file and make a prepared statement,
+	// then will cache the statement for next time call
+	StatementFromFile(fileName string) *sql.Stmt
+	// Statement will make a prepared statement according to the input sql script,
+	// then will cache the statement for next time call
 	Statement(s string) *sql.Stmt
 	Close() error
 	Initialize()

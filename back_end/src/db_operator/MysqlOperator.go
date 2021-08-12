@@ -4,22 +4,17 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"strings"
+	"sync"
 )
 
 type MysqlOperator struct {
-	statementCatch map[string]*sql.Stmt
-	fileNameCatch  map[string]*sql.Stmt
-	db             *sql.DB
+	_statementCatch sync.Map
+	db              *sql.DB
 }
 
-func (d *MysqlOperator) Begin() (*sql.Tx, error) {
-	return d.db.Begin()
-}
-
-// StatementFromFile will read the SQL from a file and make a prepared statement,
-// then will cache the statement for next time call
 func (d *MysqlOperator) StatementFromFile(fileName string) *sql.Stmt {
-	if resStr, exist := d.fileNameCatch[fileName]; exist {
+	if resStr, exist := d.getStmt(fileName); exist {
 		return resStr
 	}
 	bitarray, err := ioutil.ReadFile(fileName)
@@ -27,25 +22,26 @@ func (d *MysqlOperator) StatementFromFile(fileName string) *sql.Stmt {
 		panic(err.Error())
 	}
 	var resStr = string(bitarray)
-	stat, exist := d.statementCatch[resStr]
+	stat, exist := d.getStmt(sterilizeSql(resStr)) //d._statementCatch[resStr]
 	if exist {
-		d.fileNameCatch[fileName] = stat
+		d.cacheStmt(fileName, stat)
 		return stat
 	} else {
 		stat, err = d.db.Prepare(resStr)
 		if err != nil {
 			panic(fmt.Sprint("Statement : ", resStr, " illegal: ", err.Error()))
 		}
-		d.statementCatch[resStr] = stat
-		d.fileNameCatch[fileName] = stat
+		//d._statementCatch[resStr] = stat
+		d.cacheStmt(sterilizeSql(resStr), stat)
+		d.cacheStmt(fileName, stat)
+		//d.fileNameCache[fileName] = stat
 		return stat
 	}
 }
 
-// Statement will make a prepared statement according to the input sql script,
-// then will cache the statement for next time call
 func (d *MysqlOperator) Statement(sql string) *sql.Stmt {
-	stat, exist := d.statementCatch[sql]
+	sql = sterilizeSql(sql)
+	stat, exist := d.getStmt(sql)
 	if exist {
 		return stat
 	}
@@ -53,7 +49,8 @@ func (d *MysqlOperator) Statement(sql string) *sql.Stmt {
 	if err != nil {
 		panic(fmt.Sprint("Statement : ", sql, " illegal: ", err.Error()))
 	}
-	d.statementCatch[sql] = stat
+	d.cacheStmt(sql, stat)
+	//d._statementCatch[sql] = stat
 	return stat
 }
 
@@ -62,12 +59,27 @@ func (d *MysqlOperator) Close() error {
 }
 
 func (d *MysqlOperator) Initialize() {
-	d.fileNameCatch = map[string]*sql.Stmt{}
-	d.statementCatch = map[string]*sql.Stmt{}
-
+	d._statementCatch = sync.Map{}
 }
 
-func Close() error {
+// Begin starts a transaction. The default isolation level is dependent on the driver.
+func (d *MysqlOperator) Begin() (*sql.Tx, error) {
+	return d.db.Begin()
+}
+
+func (d *MysqlOperator) cacheStmt(key string, st *sql.Stmt) {
+	d._statementCatch.Store(key, st)
+}
+
+func (d *MysqlOperator) getStmt(key string) (*sql.Stmt, bool) {
+	st, exist := d._statementCatch.Load(key)
+	if !exist {
+		return nil, false
+	}
+	return st.(*sql.Stmt), exist
+}
+
+func CloseAllOperator() error {
 	var err error
 	for _, operator := range operatorCache {
 		e := operator.Close()
@@ -83,4 +95,9 @@ func Close() error {
 		return err
 	}
 	return nil
+}
+
+func sterilizeSql(sql string) string {
+	sql = strings.Replace(sql, "\n", " ", -1)
+	return sql
 }

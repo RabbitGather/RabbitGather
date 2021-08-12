@@ -30,7 +30,7 @@ func (w *ArticleManagement) GetArticleHandler(c *gin.Context) {
 		log.DEBUG.Println("wrong input, got empty string")
 		return
 	}
-	stat := dbOperator.Statement("select a.title , a.content , ST_AsBinary( b.coords)\nfrom `article` as a\n         left join `article_details` as b on a.id = b.article\n         left join  `article_tag` as c\n                    on a.id = c.article_id and c.tag_id = 1\nwhere c.tag_id is null and  a.id = ?;")
+	stat := dbOperator.StatementFromFile("sql/select_article_by_id.sql") //dbOperator.Statement("select a.title , a.content , ST_AsBinary( b.coords)\nfrom `article` as a\n         left join `article_details` as b on a.id = b.article\n         left join  `article_tag` as c\n                    on a.id = c.article_id and c.tag_id = 1\nwhere c.tag_id is null and  a.id = ?;")
 	type GetArticleResponse struct {
 		Title   string    `json:"title"`
 		Content string    `json:"content"`

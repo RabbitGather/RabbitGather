@@ -81,8 +81,8 @@ func insertArticleToDB(article *ArticleReceived, userID uint32) (int64, error) {
 		}
 	}(tx)
 
-	insertToArticle := tx.Stmt(dbOperator.Statement("insert into `article` (title, content)\n    value (?, ?)\n;"))
-	insertToArticleDetails := tx.Stmt(dbOperator.Statement("insert into `article_details` (article, coords)\n    value (?, Point(?, ?))\n;"))
+	insertToArticle := tx.Stmt(dbOperator.StatementFromFile("sql/insert_new_article.sql"))                 //dbOperator.Statement("insert into `article` (title, content)\n    value (?, ?)\n;"))
+	insertToArticleDetails := tx.Stmt(dbOperator.StatementFromFile("sql/insert_new_article_position.sql")) //dbOperator.Statement("insert into `article_details` (article, coords)\n    value (?, Point(?, ?))\n;"))
 
 	res, err := insertToArticle.Exec(article.Title, article.Content)
 	if err != nil {

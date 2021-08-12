@@ -1,0 +1,1 @@
+select password,randomSalt from user where id = ? limit 1;

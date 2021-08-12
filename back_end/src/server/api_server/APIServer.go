@@ -132,6 +132,7 @@ func (w *APIServer) MountService(ctx context.Context) {
 
 	userAccount := account_management.AccountManagement{}
 	w.ginEngine.POST("/account/login", w.permissionCheckHandler(bitmask.NoStatus), userAccount.LoginHandler)
+	w.ginEngine.POST("/account/logout", w.permissionCheckHandler(bitmask.NoStatus), userAccount.LogoutHandler)
 	w.ginEngine.POST("/account/signup", w.permissionCheckHandler(bitmask.WaitVerificationCode), userAccount.SignupHandler)
 	w.ginEngine.POST("/account/sent_verification_code", w.permissionCheckHandler(bitmask.NoStatus), userAccount.SentVerificationCodeHandler)
 	w.appendShutdownCallback(func() error {

@@ -94,7 +94,7 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 		}
 
 		// Get the article content from MySQL DB
-		stat := dbOperator.Statement("select title, content,UNIX_TIMESTAMP(update_time) from article as a left join article_tag t on a.id = t.article_id where id = ? and t.tag_id != 1;\n")
+		stat := dbOperator.StatementFromFile("sql/get_article_by_id.sql") //dbOperator.Statement("select title, content,UNIX_TIMESTAMP(update_time) from article as a left join article_tag t on a.id = t.article_id where id = ? and t.tag_id != 1;\n")
 		err = stat.QueryRow(article.ID).Scan(&article.Title, &article.Content, &article.Timestamp)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

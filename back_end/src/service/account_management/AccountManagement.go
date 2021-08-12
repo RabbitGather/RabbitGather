@@ -1,6 +1,7 @@
 package account_management
 
 import (
+	"github.com/gin-gonic/gin"
 	"rabbit_gather/src/db_operator"
 	"rabbit_gather/src/logger"
 	"rabbit_gather/util"
@@ -26,4 +27,8 @@ type AccountManagement struct {
 
 func (w *AccountManagement) Close() error {
 	return nil
+}
+
+func (w *AccountManagement) LogoutHandler(context *gin.Context) {
+	log.TempLog().Println("LogoutHandler is not implemented")
 }

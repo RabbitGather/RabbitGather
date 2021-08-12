@@ -65,7 +65,7 @@ func (w *ArticleManagement) DeleteArticleHandler(c *gin.Context) {
 }
 
 func tagArticleAsDelete(articleID int64) error {
-	stat := dbOperator.Statement("insert into `article_tag` (article_id,tag_id) value(?,?);\n")
+	stat := dbOperator.StatementFromFile("sql/insert_delete_tag.sql") //dbOperator.Statement("insert into `article_tag` (article_id,tag_id) value(?,?);\n")
 	_, err := stat.Exec(articleID, Delete)
 	if err != nil {
 		return err

@@ -33,7 +33,7 @@ func (w *ArticleManagement) UpdateArticleHandler(c *gin.Context) {
 }
 
 func updateArticleOnDB(u *UpdateArticleRequest) error {
-	stat := dbOperator.Statement("update article left join article_tag a on article.id = a.article_id set title = ?, content = ? where id = ? and a.tag_id != 1;")
+	stat := dbOperator.StatementFromFile("sql/update_article.sql") //dbOperator.Statement("update article left join article_tag a on article.id = a.article_id set title = ?, content = ? where id = ? and a.tag_id != 1;")
 	_, err := stat.Exec(u.Title, u.Content, u.ID)
 	return err
 }

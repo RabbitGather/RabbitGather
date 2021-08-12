@@ -51,7 +51,7 @@ type ArticleAuthoritySetting struct {
 }
 
 func (w *ArticleManagement) getUserArticleAuthority(userid uint32) (*ArticleAuthoritySetting, error) {
-	stat := dbOperator.Statement("select setting from `article_user_setting` where user = ?;")
+	stat := dbOperator.StatementFromFile("sql/select_setting_from_article_user_setting.sql") // dbOperator.Statement("select setting from `article_user_setting` where user = ?;")
 	var setting ArticleAuthoritySetting
 	err := stat.QueryRow(userid).Scan(&setting)
 	if err != nil {

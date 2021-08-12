@@ -72,7 +72,7 @@ func finalize() {
 		log.ERROR.Println(err.Error())
 		err = errors.Unwrap(err)
 	}
-	err = db_operator.Close()
+	err = db_operator.CloseAllOperator()
 	for err != nil {
 		log.ERROR.Println(err.Error())
 		err = errors.Unwrap(err)

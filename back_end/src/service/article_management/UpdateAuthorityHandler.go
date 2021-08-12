@@ -41,6 +41,7 @@ func (w *ArticleManagement) updateSettingOnDB(setting ArticleAuthorityUpdateRequ
 	for i := 0; i < len(setting.Settings); i++ {
 		pairQuestionMark += ",?,?"
 	}
+
 	insertString := fmt.Sprintf("insert into `article_user_setting` (user, setting) value (?,?) on duplicate key update setting = JSON_SET(setting %s);", pairQuestionMark)
 	stmt := dbOperator.Statement(insertString)
 
