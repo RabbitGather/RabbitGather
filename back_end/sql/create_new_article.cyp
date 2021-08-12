@@ -6,9 +6,7 @@ CREATE
   })
     -[:At]
     ->(:Position {pt: point({x: $x, y: $y})});
-//
-//
-//
+
 //CREATE
 //  (:User {id:2})-
 //  [:Create]
