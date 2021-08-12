@@ -80,6 +80,7 @@ func finalize() {
 	err1 := neo4j_db.Close()
 	if err1 != nil {
 		log.ERROR.Println(err1.Error())
+		err = errors.Unwrap(err)
 	}
 }
 

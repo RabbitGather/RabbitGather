@@ -210,3 +210,40 @@ select  * from article;
 insert into `article_details` (article, coords)
     value (?, Point(?, ?))
 ;
+
+
+select title, content,UNIX_TIMESTAMP(update_time) from article where id = 13;
+
+select a.title , a.content , ST_AsBinary( b.coords)
+from `article` as a
+         left join `article_details` as b on a.id = b.article
+         left join  `article_tag` as c
+                    on a.id = c.article_id and c.tag_name = 1
+where c.tag_name is null and  a.id = ?;
+
+
+select * from `article` left join `article_details`
+    on `article`.id = `article_details`.article
+where  `article`.id = 13;
+
+insert into `article_tag` (article_id,tag_id) value(?,?);
+
+select * from article_tag;
+
+select * from article;
+
+
+select title, content,UNIX_TIMESTAMP(update_time) from article as a left join article_tag t on a.id = t.article_id where id = 2 and t.tag_id != 1;
+
+
+select a.title , a.content , ST_AsBinary( b.coords)
+from `article` as a
+         left join `article_details` as b on a.id = b.article
+         left join  `article_tag` as c
+                    on a.id = c.article_id and c.tag_id = 1
+where c.tag_id is null and  a.id = ?;
+
+
+update article left join article_tag a on article.id = a.article_id set title = '?', content = '?' where id = 2 and a.tag_id != 1;
+
+select * from article;

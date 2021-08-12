@@ -3,11 +3,12 @@ package db_operator
 import (
 	"database/sql"
 	"fmt"
-	"strings"
+	"io/ioutil"
 )
 
 type MysqlOperator struct {
 	statementCatch map[string]*sql.Stmt
+	fileNameCatch  map[string]*sql.Stmt
 	db             *sql.DB
 }
 
@@ -15,17 +16,44 @@ func (d *MysqlOperator) Begin() (*sql.Tx, error) {
 	return d.db.Begin()
 }
 
-func (d *MysqlOperator) Statement(s string) *sql.Stmt {
-	s = strings.Replace(s, "\n", "", -1)
-	stat, exist := d.statementCatch[s]
+// StatementFromFile will read the SQL from a file and make a prepared statement,
+// then will cache the statement for next time call
+func (d *MysqlOperator) StatementFromFile(fileName string) *sql.Stmt {
+	if resStr, exist := d.fileNameCatch[fileName]; exist {
+		return resStr
+	}
+	bitarray, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		panic(err.Error())
+	}
+	var resStr = string(bitarray)
+	stat, exist := d.statementCatch[resStr]
+	if exist {
+		d.fileNameCatch[fileName] = stat
+		return stat
+	} else {
+		stat, err = d.db.Prepare(resStr)
+		if err != nil {
+			panic(fmt.Sprint("Statement : ", resStr, " illegal: ", err.Error()))
+		}
+		d.statementCatch[resStr] = stat
+		d.fileNameCatch[fileName] = stat
+		return stat
+	}
+}
+
+// Statement will make a prepared statement according to the input sql script,
+// then will cache the statement for next time call
+func (d *MysqlOperator) Statement(sql string) *sql.Stmt {
+	stat, exist := d.statementCatch[sql]
 	if exist {
 		return stat
 	}
-	stat, err := d.db.Prepare(s)
+	stat, err := d.db.Prepare(sql)
 	if err != nil {
-		panic("Statement : " + s + " illegal: " + err.Error())
+		panic(fmt.Sprint("Statement : ", sql, " illegal: ", err.Error()))
 	}
-	d.statementCatch[s] = stat
+	d.statementCatch[sql] = stat
 	return stat
 }
 
@@ -34,6 +62,7 @@ func (d *MysqlOperator) Close() error {
 }
 
 func (d *MysqlOperator) Initialize() {
+	d.fileNameCatch = map[string]*sql.Stmt{}
 	d.statementCatch = map[string]*sql.Stmt{}
 
 }

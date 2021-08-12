@@ -26,6 +26,7 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 		log.DEBUG.Println("wrong input: ", err.Error())
 		return
 	}
+	log.TempLog().Println()
 	//log.TempLog().Println(pretty.Sprint(searchArticleRequest))
 	//log.TempLog().Println("searchArticleRequest.Position.X: ", searchArticleRequest.Position.X)
 	//log.TempLog().Println("25.040056717110396: ", 25.040056717110396)
@@ -47,7 +48,6 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 		},
 	)
 
-	//log.TempLog().Println("result: ", result.Record())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"err": "server error",
@@ -66,6 +66,7 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 	var resultArticles []Article
 	for result.Next() {
 		record := result.Record()
+		//pretty.Println("result: ",record)
 
 		article := Article{
 			Position: util.Point2D{},
@@ -75,15 +76,6 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 			articleProps := art.(neo4j.Node).Props
 			if id, exist := articleProps["id"]; exist {
 				article.ID = id.(int64)
-			}
-			if title, exist := articleProps["title"]; exist {
-				article.Title = title.(string)
-			}
-			if content, exist := articleProps["content"]; exist {
-				article.Content = content.(string)
-			}
-			if timestamp, exist := articleProps["timestamp"]; exist {
-				article.Timestamp = timestamp.(int64)
 			}
 		}
 
@@ -99,6 +91,17 @@ func (w *ArticleManagement) SearchArticleHandler(c *gin.Context) {
 		distance, exist := record.Get("distance")
 		if exist {
 			article.Distance = distance.(float64)
+		}
+
+		// Get the article content from MySQL DB
+		stat := dbOperator.Statement("select title, content,UNIX_TIMESTAMP(update_time) from article as a left join article_tag t on a.id = t.article_id where id = ? and t.tag_id != 1;\n")
+		err = stat.QueryRow(article.ID).Scan(&article.Title, &article.Content, &article.Timestamp)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"err": "server error",
+			})
+			log.ERROR.Println("error when QueryRow:", err.Error())
+			return
 		}
 
 		resultArticles = append(resultArticles, article)

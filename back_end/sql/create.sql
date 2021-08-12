@@ -63,53 +63,37 @@ insert into `article_details` (article, coords)
 create table `tag_type`
 (
     `id`   int unsigned primary key auto_increment,
-    `type` char(24) not null unique
-);
-
-insert into `tag_type` (type)
-    value ('SYSTEM_TAG')
-;
-
-create table `tag_name`
-(
-    `id`   int unsigned primary key auto_increment,
     `name` char(24) not null unique
 );
 
-insert into `tag_name` (name)
-values ('DELETE')
+insert into `tag_type` (name)
+    value ('SYSTEM_TAG')
+;
+
+create table `tags`
+(
+    `id`   int unsigned primary key auto_increment,
+    `name` char(24) not null unique,
+    `type` int unsigned  null unique,
+        foreign key (`type`) references `tag_type` (`id`)
+
+);
+
+insert into `tags` (name,type)
+values ('DELETE',1)
 ;
 
 create table `article_tag`
 (
-    `tag_id`     int unsigned primary key auto_increment,
+    `tag_id`     int unsigned not null ,
     `article_id` int unsigned not null,
-    `tag_name`   int unsigned not null,
-    `tag_type`   int unsigned not null,
-    unique (`tag_name`, `tag_type`),
-    unique (`article_id`, `tag_id`),
+    primary key (`article_id`,`tag_id`),
     foreign key (`article_id`) references `article` (`id`),
-    foreign key (`tag_name`) references `tag_name` (`id`),
-    foreign key (`tag_type`) references `tag_type` (`id`)
+    foreign key (`tag_id`) references `tags` (`id`)
 );
 
 
-insert into `article_tag` (article_id, tag_name, tag_type)
-    value (1, 1, 1);
---
--- #
--- delete
--- # from article_tag
--- # where article_id = 1
--- #   and tag_name = 1;
--- #
--- #
--- select *
---            #
--- from article_tag;
--- #
--- #
--- update article_tag
---     #
--- set tag_name = 1 #
--- where article_id = 1;
+insert into `article_tag` (article_id, tag_id)
+    value (1, 1);
+
+
