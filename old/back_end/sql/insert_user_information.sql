@@ -1,0 +1,1 @@
+insert into `user_information`(`user`,`email`,`phone`) value (?,?,?);

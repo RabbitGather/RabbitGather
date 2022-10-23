@@ -1,0 +1,1 @@
+select id,api_permission_bitmask from user where name = ? limit 1;
