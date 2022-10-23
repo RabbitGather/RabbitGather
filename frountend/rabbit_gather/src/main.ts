@@ -1,8 +1,8 @@
 import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
-import router from './router' // 引入router
-import store from './store' // 引入store
+import '@/style.css'
+import App from '@/App.vue'
+import router from '@/router' // 引入router
+import store from '@/store' // 引入store
 import 'virtual:windi.css'
 
 createApp(App)
