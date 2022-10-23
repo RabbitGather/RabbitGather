@@ -1,1 +1,0 @@
-insert into `article_tag` (article_id,tag_id) value(?,?);

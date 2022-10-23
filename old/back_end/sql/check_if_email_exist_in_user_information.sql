@@ -1,1 +1,0 @@
-select `email` from `user_information`where email =?;

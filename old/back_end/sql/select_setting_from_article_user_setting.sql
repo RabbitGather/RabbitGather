@@ -1,1 +1,0 @@
-select setting from `article_user_setting` where user = ?;

@@ -1,1 +1,0 @@
-select `phone` from `user_information`where phone =?;
