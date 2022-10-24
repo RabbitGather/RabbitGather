@@ -7,7 +7,9 @@ defineProps<{ msg: string }>()
 </script>
 
 <template>
-  HOME
+  <div class="">
+
+  </div>
 </template>
 
 <style scoped>
