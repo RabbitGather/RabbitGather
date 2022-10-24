@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import HelloWorld from './components/Home.vue'
 import router from '@/router'
 
 </script>
 
 <template>
  <div class="main">
-   <router-link to="/hello">Hello</router-link>
-   <router-view />
+   <router-view/>
  </div>
 
 </template>
