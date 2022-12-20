@@ -8,14 +8,11 @@ import router from '@/router'
  <div class="main">
    <router-view/>
  </div>
-
 </template>
 
 <style scoped>
   .main{
-    padding: 0;
-    background: #747bff;
-    display: block;
+    background: bisque;
     width: 100%;
     height: 100%;
   }

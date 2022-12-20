@@ -7,8 +7,13 @@ defineProps<{ msg: string }>()
 </script>
 
 <template>
-  <div class="">
-
+  <div class="bg-lightpink w-full h-full flex flex-col justify-center items-center">
+    <div class="flex flex-col gap-2 max-w-20em">
+      <img src="/rabbit.svg" alt="logo" >
+      <h1>
+        RABBIT GATHER
+      </h1>
+    </div>
   </div>
 </template>
 

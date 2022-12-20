@@ -6,6 +6,9 @@ export default defineConfig({
     safelist: 'p-3 p-4 p-5',
     theme: {
         extend: {
+            backgroundColor: {
+                'lightpink': '#FDE5EE',
+            },
             colors: {
                 teal: {
                     100: '#096',
