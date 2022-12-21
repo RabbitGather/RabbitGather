@@ -1,4 +1,4 @@
-run-name: ci by ${{ github.actor }} - $GITHUB_SHA
+run-name: ci by ${{ github.actor }} - ${{ github.sha }}
 
 on:
   push:
@@ -9,6 +9,8 @@ jobs:
   build_frontend:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -22,11 +24,6 @@ jobs:
           registry: meowalien.com:5000
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-#      - name: Check out repository code
-#        uses: actions/checkout@v3
-      - name: List files in the repository
-        run: |
-          ls $GITHUB_WORKSPACE
       -
         name: Build and push
         uses: docker/build-push-action@v3
