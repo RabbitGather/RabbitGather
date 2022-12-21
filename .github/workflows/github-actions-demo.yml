@@ -1,4 +1,4 @@
-run-name: ci by ${{ github.actor }} - $${GITHUB_SHA}
+run-name: ci by ${{ github.actor }} - ${GITHUB_SHA}
 
 on:
   push:
