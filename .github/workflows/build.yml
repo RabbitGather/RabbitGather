@@ -2,20 +2,13 @@ name: build
 run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
   push:
-    tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-#    branches:
-#      - 'main'
+    branches:
+      - 'main'
 
 jobs:
   build_frontend:
     runs-on: ubuntu-latest
     steps:
-#      - run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-#      - run: echo ${SHORT_SHA}
-#      - run: echo "TAG_NAME=`echo meowalien.com:5000/frontend:${SHORT_SHA}`" >> $GITHUB_ENV
-#      - run: echo ${{ env.TAG_NAME }}
-#      - run: echo ${GITHUB_REF##*/}
       - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
       - run: echo ${{ env.GIT_TAG }}
 
@@ -48,8 +41,13 @@ jobs:
 
 
 
-
-
+#    tags:
+#      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+#      - run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+#      - run: echo ${SHORT_SHA}
+#      - run: echo "TAG_NAME=`echo meowalien.com:5000/frontend:${SHORT_SHA}`" >> $GITHUB_ENV
+#      - run: echo ${{ env.TAG_NAME }}
+#      - run: echo ${GITHUB_REF##*/}
 #run-name: ${{ github.actor }} is building ${{ github.sha }}
 #on: [push]
 #jobs:
