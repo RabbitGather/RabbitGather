@@ -3,7 +3,7 @@ run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
   push:
     branches:
-      - 'main'
+      - 'dev'
 
 jobs:
   build_frontend:
