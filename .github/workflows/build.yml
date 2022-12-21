@@ -1,11 +1,12 @@
-run-name: ci by ${{ github.actor }} - ${{ github.sha }}
+name: build
+run-name: build by ${{ github.actor }} - ${{ github.sha }}
+on:
+  push:
+    branches:
+      - 'main'
 
 jobs:
   build_frontend:
-    on:
-      push:
-        branches:
-          - 'main'
     runs-on: ubuntu-latest
     steps:
       - run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
