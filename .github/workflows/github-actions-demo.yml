@@ -27,7 +27,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./frontend/Dockerfile
+          file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
           tags: ci/frontend:latest
 
