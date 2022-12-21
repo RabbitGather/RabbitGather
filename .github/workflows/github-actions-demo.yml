@@ -22,8 +22,8 @@ jobs:
           registry: meowalien.com:5000
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Check out repository code
-        uses: actions/checkout@v3
+#      - name: Check out repository code
+#        uses: actions/checkout@v3
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }}
@@ -31,7 +31,7 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context:  ${{ github.workspace }}/frontend/
+          context: ${{ github.workspace }}/frontend/
           file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
           tags: meowalien.com:5000/frontend:latest
