@@ -34,7 +34,7 @@ jobs:
           context:  ${{ github.workspace }}/frontend/
           file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
-          tags: ci/frontend:latest
+          tags: meowalien.com:5000/frontend:latest
 
 #run-name: ${{ github.actor }} is building ${{ github.sha }}
 #on: [push]
