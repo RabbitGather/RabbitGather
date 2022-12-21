@@ -11,7 +11,8 @@ jobs:
     steps:
       - run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - run: echo ${SHORT_SHA}
-      - run: echo meowalien.com:5000/frontend:${SHORT_SHA}
+      - run: echo "TAG_NAME=`echo meowalien.com:5000/frontend:${SHORT_SHA}`" >> $GITHUB_ENV
+      - run: echo ${TAG_NAME}
       - name: Check out repository code
         uses: actions/checkout@v3
       - run: git rev-parse --short HEAD
@@ -35,7 +36,7 @@ jobs:
           context: ${{ github.workspace }}/frontend/
           file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
-          tags: meowalien.com:5000/frontend:${SHORT_SHA}
+          tags: ${TAG_NAME}
 
 #run-name: ${{ github.actor }} is building ${{ github.sha }}
 #on: [push]
