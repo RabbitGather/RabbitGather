@@ -11,39 +11,39 @@ jobs:
   build_frontend:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-      - run: echo ${SHORT_SHA}
-      - run: echo "TAG_NAME=`echo meowalien.com:5000/frontend:${SHORT_SHA}`" >> $GITHUB_ENV
-      - run: echo ${{ env.TAG_NAME }}
-      - run: echo ${GITHUB_REF##*/}
+#      - run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+#      - run: echo ${SHORT_SHA}
+#      - run: echo "TAG_NAME=`echo meowalien.com:5000/frontend:${SHORT_SHA}`" >> $GITHUB_ENV
+#      - run: echo ${{ env.TAG_NAME }}
+#      - run: echo ${GITHUB_REF##*/}
       - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
       - run: echo ${{ env.GIT_TAG }}
 
 
-#      - name: Check out repository code
-#        uses: actions/checkout@v3
-#      - run: git rev-parse --short HEAD
-#      -
-#        name: Set up QEMU
-#        uses: docker/setup-qemu-action@v2
-#      -
-#        name: Set up Docker Buildx
-#        uses: docker/setup-buildx-action@v2
-#      -
-#        name: Login to Docker Hub
-#        uses: docker/login-action@v2
-#        with:
-#          registry: meowalien.com:5000
-#          username: ${{ secrets.DOCKERHUB_USERNAME }}
-#          password: ${{ secrets.DOCKERHUB_TOKEN }}
-#      -
-#        name: Build and push
-#        uses: docker/build-push-action@v3
-#        with:
-#          context: ${{ github.workspace }}/frontend/
-#          file: ${{ github.workspace }}/frontend/Dockerfile
-#          push: true
-#          tags: meowalien.com:5000/frontend:${{ env.SHORT_SHA }}
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - run: git rev-parse --short HEAD
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: meowalien.com:5000
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: ${{ github.workspace }}/frontend/
+          file: ${{ github.workspace }}/frontend/Dockerfile
+          push: true
+          tags: meowalien.com:5000/frontend:${{ env.GIT_TAG }}
 
 
 
