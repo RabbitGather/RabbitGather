@@ -24,7 +24,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: List files in the repository
         run: |
-          ls ${{ github.workspace }}
+          ls ..${{ github.workspace }}
       -
         name: Build and push
         uses: docker/build-push-action@v3
