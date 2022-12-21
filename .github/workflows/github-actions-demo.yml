@@ -25,7 +25,7 @@ jobs:
           registry: meowalien.com:5000
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - run: GIT_HASH_SHORT=git rev-parse --short HEAD
+      - run: GIT_HASH_SHORT=$(git rev-parse --short HEAD)
       -
         name: Build and push
         uses: docker/build-push-action@v3
