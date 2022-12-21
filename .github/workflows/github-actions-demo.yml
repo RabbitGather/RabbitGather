@@ -1,4 +1,4 @@
-run-name: ci by ${{ github.actor }} - ${{ github.sha }}
+run-name: ci by ${{ github.actor }} - ${{ git rev-parse --short HEAD }}
 
 on:
   push:
@@ -11,6 +11,7 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
+      - run: git rev-parse --short HEAD
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -24,7 +25,6 @@ jobs:
           registry: meowalien.com:5000
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - run: git rev-parse --short HEAD
       -
         name: Build and push
         uses: docker/build-push-action@v3
@@ -32,7 +32,7 @@ jobs:
           context: ${{ github.workspace }}/frontend/
           file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
-          tags: meowalien.com:5000/frontend:latest
+          tags: meowalien.com:5000/frontend:$(git rev-parse --short HEAD)
 
 #run-name: ${{ github.actor }} is building ${{ github.sha }}
 #on: [push]
