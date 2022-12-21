@@ -33,7 +33,7 @@ jobs:
           context: ${{ github.workspace }}/frontend/
           file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
-          tags: meowalien.com:5000/frontend:$GIT_HASH_SHORT
+          tags: meowalien.com:5000/frontend:${{ env.GIT_HASH_SHORT }}
 
 #run-name: ${{ github.actor }} is building ${{ github.sha }}
 #on: [push]
