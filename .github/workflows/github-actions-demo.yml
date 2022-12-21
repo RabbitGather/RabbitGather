@@ -1,4 +1,4 @@
-run-name: ci by ${{ github.actor }} - ${{ github.sha }}
+run-name: ci by ${{ github.actor }} - ${{ GITHUB_SHA }}
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
 #        uses: actions/checkout@v3
       - name: List files in the repository
         run: |
-          ls ${{ github.workspace }}
+          ls ${{ GITHUB_WORKSPACE }}
       -
         name: Build and push
         uses: docker/build-push-action@v3
