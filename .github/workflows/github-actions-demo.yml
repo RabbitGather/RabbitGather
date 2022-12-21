@@ -6,7 +6,7 @@ on:
       - 'main'
 
 jobs:
-  build_frontend_docker_image:
+  build_frontend:
     runs-on: ubuntu-latest
     steps:
       -
