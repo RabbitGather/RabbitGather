@@ -3,7 +3,7 @@ FROM node:14.20.1-alpine3.16 as build-stage
 WORKDIR /app
 COPY . .
 
-RUN cd ./rabbit_gather
+RUN cd /app/rabbit_gather
 
 RUN yarn install && yarn build
 
