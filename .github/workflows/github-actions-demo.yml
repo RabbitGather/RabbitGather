@@ -26,13 +26,13 @@ jobs:
         uses: actions/checkout@v3
       - name: List files in the repository
         run: |
-          cd ${{ github.workspace }}/frontend && ls .
+          ls ${{ github.workspace }}
       -
         name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: .
-          file: ./Dockerfile
+          context:  ${{ github.workspace }}/frontend/
+          file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
           tags: ci/frontend:latest
 
