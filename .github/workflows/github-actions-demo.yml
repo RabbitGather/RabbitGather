@@ -1,4 +1,4 @@
-run-name: ci by ${{ github.actor }} hash ${{ github.sha }}
+run-name: ci by ${{ github.actor }} - ${{ github.ref }}
 
 on:
   push:
