@@ -1,4 +1,4 @@
-run-name: ci by ${{ github.actor }} - ${{ git rev-parse --short HEAD }}
+run-name: ci by ${{ github.actor }} - ${{ github.sha }}
 
 on:
   push:
