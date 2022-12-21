@@ -6,7 +6,7 @@ on:
       - 'main'
 
 jobs:
-  docker:
+  build_frontend_docker_image:
     runs-on: ubuntu-latest
     steps:
       -
@@ -26,7 +26,7 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: ./frontend
+          context: ${{ github.workspace }}/frontend
           push: true
           tags: ci/frontend:latest
 
