@@ -12,3 +12,5 @@ services:
       - 8080:80
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+#  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCgkqJJ0ZZmG1laUEw9/DGNY6+PfFHugCKeaHZl4Kyvy92nYB+bbzJMiVB4zoxJM4s0XwG0o/gVMmdEXXl92uo+fDZ3oU2CzNYPtglfiBdgmM8KQS+MQo9rwYfou830pf6w1MCqHDqLdDLws8TJBPd0cc88wBuy/Ca34L2mkiudSc+oggeNnxnEFBHdDakdC+xfb9+CLWnQfbVBENp6GD962EhoywfsPRZMUT+yUp/bmO/E+g9S33Gth2WYufrzyYWTLUQ3R8CqQ+kWQVVrfHeASoyTpOBfo9RAq9rE0TUxdJj1HAoKbdYj6h7etpBbdFd2ugP69rOBR0VGWFJ42jKf jacky@jacky-MS-7A82
+#  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyRTtjooEWV7eobN8u0V6+KjeipIHgOz+JuPhusWwq6ev0C7QP4BReqgpL9IsHDWzmBaoQo0DzUH/zH+LDmQ9+bDV7kwN/mFDtpL/HFKvqOU3YyeD1HzS+Wlr4hujxJQCHKqVXdcj16QFSraRfR/Juroz22L9TgdtAbaEXcrGGCM/1Hce8K4G0DYkPvchYI2MEeZiwX5vKpFIyvHwBLsd9LGJh5XAk9gIvQhOOwwwUakkjb+qkdibpPAxyK4Uvn0QZzvjJmr0FD0L92wbwN+iUYele5es49IQdOLfYnPyc5sx69vaBU549bgCtlS9dSfrvH70AYQNFNTJPHCSlxt2N jacky@jacky-MS-7A82
