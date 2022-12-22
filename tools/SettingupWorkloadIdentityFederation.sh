@@ -18,7 +18,7 @@ gcloud iam workload-identity-pools providers create-oidc "github-action-provider
 
 
 # TODO(developer): Update this value to your GitHub repository.
-export REPO="username/name" # e.g. "google/chrome"
+export REPO="meowalien/RabbitGather" # e.g. "google/chrome"
 export WORKLOAD_IDENTITY_POOL_ID="projects/517575915083/locations/global/workloadIdentityPools/github-pool"
 gcloud iam service-accounts add-iam-policy-binding "github-action-service-account@${PROJECT_ID}.iam.gserviceaccount.com" \
 --project="${PROJECT_ID}" \
