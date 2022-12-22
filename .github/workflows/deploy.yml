@@ -3,7 +3,7 @@ run-name: deploy by ${{ github.actor }} - ${{ github.sha }}
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
 
 jobs:
   deploy_to_instance-1:
