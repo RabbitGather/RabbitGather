@@ -4,10 +4,17 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
-    branches:
-      - 'main'
 jobs:
+  build_frontend:
+    uses: ./.github/workflows/build.yml
+    with:
+      IMAGE_NAME: frontend
+    secrets:
+      DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   deploy_frontend:
+    needs: build_frontend
     uses: ./.github/workflows/deploy_to_gcp.yml
     with:
       IMAGE_NAME: frontend
