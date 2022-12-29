@@ -25,7 +25,7 @@ jobs:
 
     uses: ./.github/workflows/build.yml
     with:
-      BRANCH: ${GITHUB_REF_NAME}
+      BRANCH: ${{ env.GITHUB_REF_NAME }}
       HASH: ${{ needs.prepare.outputs.GIT_SHORT_HASH }}
       IMAGE_NAME: frontend
     secrets:
