@@ -31,3 +31,4 @@ jobs:
                       -v \${MEOWALIEN_PUBLIC_KEY_PATH}:/certs/meowalien.com.crt \
                       -v \${MEOWALIEN_PRIVATE_KEY_PATH}:/certs/meowalien.com.key \
                       ${{ env.IMAGE_NAME_HASH }}'"
+
