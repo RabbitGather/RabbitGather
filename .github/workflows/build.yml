@@ -3,12 +3,9 @@ run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
   workflow_call:
     inputs:
-#      GIT_TAG:
-#        required: true
-#        type: string
-    IMAGE_NAME:
-      required: true
-      type: string
+      IMAGE_NAME:
+        required: true
+        type: string
     #      config-path:
 #        required: true
 #        type: string
