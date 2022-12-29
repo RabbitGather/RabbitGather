@@ -20,7 +20,14 @@ jobs:
 
       - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}`" >> $GITHUB_ENV
       - run: echo ${{ env.IMAGE_NAME_HASH }}
-
+      - run: echo gcloud compute ssh --zone asia-east1-b a_meowalien@instance-1 -- '
+          docker pull ${{ env.IMAGE_NAME_HASH }} && \
+          docker stop frontend && \
+          docker rm frontend && \
+          docker run -d -p 80:80 -p 443:443 --name ${{ inputs.IMAGE_NAME }} --restart=always \
+          -v /etc/letsencrypt/live/meowalien.com/fullchain.pem:/certs/meowalien.com.crt \
+          -v /etc/letsencrypt/live/meowalien.com/privkey.pem:/certs/meowalien.com.key \
+          ${{ env.IMAGE_NAME_HASH }}'
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v1'
