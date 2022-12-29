@@ -17,7 +17,6 @@ jobs:
     # Add "id-token" with the intended permissions.
     steps:
       - uses: 'actions/checkout@v3'
-      - uses: ./.github/workflows/build
 
       - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}`" >> $GITHUB_ENV
       - run: echo ${{ env.IMAGE_NAME_HASH }}
