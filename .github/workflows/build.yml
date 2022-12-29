@@ -2,11 +2,11 @@ name: build
 run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
   workflow_call:
-#    inputs:
+    inputs:
 #      config-path:
 #        required: true
 #        type: string
-#    secrets:
+    secrets:
 #      envPAT:
 #        required: true
 
