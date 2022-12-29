@@ -1,9 +1,14 @@
 name: build
 run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
-  push:
-    branches:
-      - 'dev'
+  workflow_call:
+#    inputs:
+#      config-path:
+#        required: true
+#        type: string
+#    secrets:
+#      envPAT:
+#        required: true
 
 jobs:
   build_frontend:
