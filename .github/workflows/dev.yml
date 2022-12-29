@@ -29,5 +29,5 @@ jobs:
         DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        BRANCH: ${{ GITHUB_REF_NAME }}
+        BRANCH: ${{ env.GITHUB_REF_NAME }}
         HASH: ${{ needs.prepare.outputs.GIT_SHORT_HASH }}
