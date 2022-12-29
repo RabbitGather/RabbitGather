@@ -7,4 +7,4 @@ on:
 
 jobs:
   build_frontend:
-    uses: ./build.yaml
+    uses: ./build.yaml@main
