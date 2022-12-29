@@ -46,3 +46,15 @@ sudo useradd -M docker_registry
 
 sayken kingkingjin
 
+
+gcloud compute ssh --zone asia-east1-b a_meowalien@instance-1 -- '
+    cd /home/a_meowalien/rabbit_gather/frountend
+    docker pull meowalien.com:5000/frontend:main
+    docker stop frontend
+    docker rm frontend
+    docker run -d -p 80:80 -p 443:443 --name frontend --restart=always \
+          -v /etc/letsencrypt/live/meowalien.com/fullchain.pem:/certs/meowalien.com.crt \
+          -v /etc/letsencrypt/live/meowalien.com/privkey.pem:/certs/meowalien.com.key \
+          meowalien.com:5000/frontend:main
+
+    '
