@@ -25,8 +25,8 @@ jobs:
 
     uses: ./.github/workflows/build.yml
     with:
-      BRANCH: ${{ env.GITHUB_REF_NAME }}
-      HASH: ${{ needs.prepare.outputs.GIT_SHORT_HASH }}
+#      BRANCH: ${{ env.GITHUB_REF_NAME }}
+#      HASH: ${{ needs.prepare.outputs.GIT_SHORT_HASH }}
       IMAGE_NAME: frontend
     secrets:
         DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
