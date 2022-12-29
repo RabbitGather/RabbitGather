@@ -1,0 +1,12 @@
+name: build
+run-name: build by ${{ github.actor }} - ${{ github.sha }}
+on:
+  push:
+    branches:
+      - 'dev'
+
+jobs:
+  build_frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: .github/workflows/build.yaml@main
