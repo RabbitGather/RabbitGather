@@ -9,12 +9,13 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
-      - run: echo ${{ env.GIT_TAG }}
-      - run: echo "IMAGE_NAME=`echo meowalien.com:5000/frontend:${{ env.GIT_TAG }}`" >> $GITHUB_ENV
-
+#      - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
+      - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
+      - run: echo ${{ env.GIT_SHORT_HASH }}
+#      - run: echo "IMAGE_NAME=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/frontend:${{ env.GIT_TAG }}`" >> $GITHUB_ENV
+#      - run: git rev-parse --short HEAD
     outputs:
-      IMAGE_NAME: ${{ env.IMAGE_NAME }}
+      GIT_SHORT_HASH: ${{ env.GIT_SHORT_HASH }}
   build_frontend:
     needs: prepare
 #    runs-on: ubuntu-latest
@@ -24,7 +25,9 @@ jobs:
 
     uses: ./.github/workflows/build.yml
     with:
-      IMAGE_NAME: ${{ needs.prepare.outputs.IMAGE_NAME }}
     secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        BRANCH: ${{ GITHUB_REF_NAME }}
+        HASH: ${{ needs.prepare.outputs.GIT_SHORT_HASH }}
