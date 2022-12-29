@@ -12,17 +12,13 @@ on:
         required: true
 jobs:
   deploy_frontend_to_gcp:
+    concurrency: main
     runs-on: ubuntu-latest
     steps:
       - uses: 'actions/checkout@v3'
       - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
       - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}`" >> $GITHUB_ENV
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v1'
-        with:
-          credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
-      - run: "gcloud compute ssh --zone asia-east1-b a_meowalien@instance-1 -- '
+      - run: echo "gcloud compute ssh --zone asia-east1-b a_meowalien@instance-1 -- '
                 docker pull ${{ env.IMAGE_NAME_HASH }} && \
                 docker stop frontend && \
                 docker rm frontend && \
@@ -31,4 +27,19 @@ jobs:
                       -v \\$\\{MEOWALIEN_PUBLIC_KEY_PATH\\}:/certs/meowalien.com.crt \
                       -v \\$\\{MEOWALIEN_PRIVATE_KEY_PATH\\}:/certs/meowalien.com.key \
                       ${{ env.IMAGE_NAME_HASH }}'"
+
+#      - id: 'auth'
+#        name: 'Authenticate to Google Cloud'
+#        uses: 'google-github-actions/auth@v1'
+#        with:
+#          credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
+#      - run: "gcloud compute ssh --zone asia-east1-b a_meowalien@instance-1 -- '
+#                docker pull ${{ env.IMAGE_NAME_HASH }} && \
+#                docker stop frontend && \
+#                docker rm frontend && \
+#                source ~/meowalin_com_ssh_key_env.sh && \
+#                docker run -d -p 80:80 -p 443:443 --name ${{ inputs.IMAGE_NAME }} --restart=always \
+#                      -v \\$\\{MEOWALIEN_PUBLIC_KEY_PATH\\}:/certs/meowalien.com.crt \
+#                      -v \\$\\{MEOWALIEN_PRIVATE_KEY_PATH\\}:/certs/meowalien.com.key \
+#                      ${{ env.IMAGE_NAME_HASH }}'"
 
