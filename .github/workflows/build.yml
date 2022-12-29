@@ -3,12 +3,6 @@ run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
   workflow_call:
     inputs:
-#      BRANCH:
-#        required: true
-#        type: string
-#      HASH:
-#        required: true
-#        type: string
       IMAGE_NAME:
         required: true
         type: string
@@ -24,17 +18,6 @@ jobs:
   build_frontend:
     runs-on: ubuntu-latest
     steps:
-#      - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
-#      - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ inputs.HASH }}`" >> $GITHUB_ENV
-
-#      - run: export IMAGE_NAME=${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ inputs.HASH }}
-#      - run: echo ${{ env.IMAGE_NAME_HASH }}
-#      - run: echo ${{ IMAGE_NAME }}
-#      - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
-#      - run: echo "IMAGE_NAME=`echo meowalien.com:5000/frontend:${{ env.GIT_TAG }}`" >> $GITHUB_ENV
-#      - run: echo GIT_TAG is ${{ inputs.GIT_TAG }}
-#      - run: echo IMAGE_NAME is ${{ inputs.IMAGE_NAME }}
-
       - name: Check out repository code
         uses: actions/checkout@v3
 
@@ -45,6 +28,9 @@ jobs:
 
       - run: echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_BRANCH }}
       - run: echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}
+
+      - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}`" >> $GITHUB_ENV
+      - run: echo "IMAGE_NAME_BRANCH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_BRANCH }}`" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -62,8 +48,7 @@ jobs:
           context: ${{ github.workspace }}/frontend/
           file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}
-
+          tags: ${{ env.IMAGE_NAME_BRANCH }},${{ env.IMAGE_NAME_HASH }}
 
 
 
