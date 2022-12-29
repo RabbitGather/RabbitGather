@@ -1,7 +1,7 @@
 name: deploy
 run-name: deploy by ${{ github.actor }} - ${{ github.sha }}
 on:
-  merge:
+  push:
     branches:
       - 'main'
 
