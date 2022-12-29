@@ -23,7 +23,7 @@ jobs:
       - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
       - run: echo "GIT_BRANCH=`echo $(echo ${GITHUB_REF_NAME})`" >> $GITHUB_ENV
       - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}`" >> $GITHUB_ENV
-      - run: echo "IMAGE_NAME_BRANCH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${GITHUB_REF_NAME}`" >> $GITHUB_ENV
+      - run: echo "IMAGE_NAME_BRANCH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GITHUB_REF_NAME }}`" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
