@@ -7,4 +7,4 @@ on:
 
 jobs:
   build_frontend:
-    uses: meowalien/RabbitGather/.github/workflows/build.yaml@main
+    uses: github.com/meowalien/RabbitGather/.github/workflows/build.yaml@main
