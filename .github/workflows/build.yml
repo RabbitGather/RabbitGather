@@ -42,6 +42,3 @@ jobs:
           file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
           tags: ${{ env.IMAGE_NAME_BRANCH }},${{ env.IMAGE_NAME_HASH }}
-
-
-
