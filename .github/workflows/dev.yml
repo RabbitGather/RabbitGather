@@ -8,7 +8,8 @@ on:
 jobs:
   build_frontend:
 #    uses: meowalien/RabbitGather/.github/workflows/build.yaml@main
-    uses: ./.github/workflows/build.yaml
+#    uses: ./.github/workflows/build.yaml
+    uses: ./.github/workflows/build.yaml@main
 
 #    runs-on: ubuntu-latest
 #    steps:
