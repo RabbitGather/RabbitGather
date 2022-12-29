@@ -22,14 +22,14 @@ jobs:
         uses: actions/checkout@v3
 
       - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
-      - run: echo ${{ env.GIT_SHORT_HASH }}
+#      - run: echo ${{ env.GIT_SHORT_HASH }}
       - run: echo "GIT_BRANCH=`echo $(git rev-parse --abbrev-ref HEAD)`" >> $GITHUB_ENV
-      - run: echo ${{ env.GIT_BRANCH }}
+#      - run: echo ${{ env.GIT_BRANCH }}
 
       - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}`" >> $GITHUB_ENV
-      - run: echo ${{ env.IMAGE_NAME_HASH }}
+#      - run: echo ${{ env.IMAGE_NAME_HASH }}
       - run: echo "IMAGE_NAME_BRANCH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_BRANCH }}`" >> $GITHUB_ENV
-      - run: echo ${{ env.IMAGE_NAME_BRANCH }}
+#      - run: echo ${{ env.IMAGE_NAME_BRANCH }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
