@@ -17,9 +17,9 @@ jobs:
     # Add "id-token" with the intended permissions.
     steps:
       - uses: 'actions/checkout@v3'
-
+      - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
       - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}`" >> $GITHUB_ENV
-      - run: echo ${{ env.IMAGE_NAME_HASH }}
+
       - run: echo gcloud compute ssh --zone asia-east1-b a_meowalien@instance-1 -- '
           docker pull ${{ env.IMAGE_NAME_HASH }} && \
           docker stop frontend && \
