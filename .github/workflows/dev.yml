@@ -6,27 +6,27 @@ on:
       - 'main'
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v3
-#      - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
-      - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
-      - run: echo ${{ env.GIT_SHORT_HASH }}
-
-      - run: echo "GIT_BRANCH=`echo $(git rev-parse --abbrev-ref HEAD)`" >> $GITHUB_ENV
-      - run: echo ${{ env.GIT_BRANCH }}
-#      - run: echo ${env.GITHUB_REF_NAME}
-#      - run: echo $env.GITHUB_REF_NAME
-#      - run: echo $GITHUB_REF_NAME
-#      - run: echo "IMAGE_NAME=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/frontend:${{ env.GIT_TAG }}`" >> $GITHUB_ENV
-#      - run: git rev-parse --short HEAD
-    outputs:
-      GIT_SHORT_HASH: ${{ env.GIT_SHORT_HASH }}
-      GIT_BRANCH: ${{ env.GIT_BRANCH }}
+#  prepare:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Check out repository code
+#        uses: actions/checkout@v3
+##      - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
+#      - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
+#      - run: echo ${{ env.GIT_SHORT_HASH }}
+#
+#      - run: echo "GIT_BRANCH=`echo $(git rev-parse --abbrev-ref HEAD)`" >> $GITHUB_ENV
+#      - run: echo ${{ env.GIT_BRANCH }}
+##      - run: echo ${env.GITHUB_REF_NAME}
+##      - run: echo $env.GITHUB_REF_NAME
+##      - run: echo $GITHUB_REF_NAME
+##      - run: echo "IMAGE_NAME=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/frontend:${{ env.GIT_TAG }}`" >> $GITHUB_ENV
+##      - run: git rev-parse --short HEAD
+#    outputs:
+#      GIT_SHORT_HASH: ${{ env.GIT_SHORT_HASH }}
+#      GIT_BRANCH: ${{ env.GIT_BRANCH }}
   build_frontend:
-    needs: prepare
+#    needs: prepare
 #    runs-on: ubuntu-latest
 #    steps:
 #      - run: |
@@ -34,8 +34,8 @@ jobs:
 
     uses: ./.github/workflows/build.yml
     with:
-      BRANCH: ${{ needs.prepare.outputs.GIT_BRANCH }}
-      HASH: ${{ needs.prepare.outputs.GIT_SHORT_HASH }}
+#      BRANCH: ${{ needs.prepare.outputs.GIT_BRANCH }}
+#      HASH: ${{ needs.prepare.outputs.GIT_SHORT_HASH }}
       IMAGE_NAME: frontend
     secrets:
         DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
