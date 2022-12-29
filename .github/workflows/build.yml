@@ -3,12 +3,12 @@ run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
   workflow_call:
     inputs:
-#      BRANCH:
-#        required: true
-#        type: string
-#      HASH:
-#        required: true
-#        type: string
+      BRANCH:
+        required: true
+        type: string
+      HASH:
+        required: true
+        type: string
       IMAGE_NAME:
         required: true
         type: string
@@ -24,10 +24,10 @@ jobs:
   build_frontend:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
+#      - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
 
-      - run: echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH }}
-      - run: echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GITHUB_REF_NAME }}
+      - run: echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ inputs.HASH }}
+      - run: echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ inputs.BRANCH }}
 #      - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
 #      - run: echo "IMAGE_NAME=`echo meowalien.com:5000/frontend:${{ env.GIT_TAG }}`" >> $GITHUB_ENV
 #      - run: echo GIT_TAG is ${{ inputs.GIT_TAG }}
