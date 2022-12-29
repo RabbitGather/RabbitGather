@@ -7,9 +7,9 @@ on:
 
 jobs:
   build_frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v3
-      - run: ls -a
-      - uses: ./.github/workflows/build.yaml
+#    runs-on: ubuntu-latest
+#    steps:
+#    - name: Check out repository code
+#      uses: actions/checkout@v3
+#    - run: ls -a
+   uses: ./.github/workflows/build.yaml
