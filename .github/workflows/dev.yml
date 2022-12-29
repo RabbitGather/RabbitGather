@@ -7,4 +7,4 @@ on:
 
 jobs:
   build_frontend:
-    uses: ./.github/workflows/build.yaml@main
+    uses: ./.github/workflows/build.yaml
