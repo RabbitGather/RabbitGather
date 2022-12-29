@@ -39,7 +39,7 @@ jobs:
                 docker rm frontend && 
                 source ~/meowalin_com_ssh_key_env.sh && 
                 docker run -d -p 80:80 -p 443:443 --name ${{ inputs.IMAGE_NAME }} --restart=always 
-                      -v \\$\{MEOWALIEN_PUBLIC_KEY_PATH\}:/certs/meowalien.com.crt 
-                      -v \\$\{MEOWALIEN_PRIVATE_KEY_PATH\}:/certs/meowalien.com.key 
+                      -v \\$\\\{MEOWALIEN_PUBLIC_KEY_PATH\\\}:/certs/meowalien.com.crt 
+                      -v \\$\\\{MEOWALIEN_PRIVATE_KEY_PATH\\\}:/certs/meowalien.com.key 
                       ${{ env.IMAGE_NAME_HASH }}'"
 
