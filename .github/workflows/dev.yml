@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'dev'
-
 jobs:
   build_frontend:
     uses: ./.github/workflows/build.yml

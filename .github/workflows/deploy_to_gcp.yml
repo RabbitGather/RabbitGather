@@ -1,5 +1,4 @@
 name: deploy_to_gcp
-#run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
   workflow_call:
     inputs:
@@ -14,7 +13,6 @@ on:
 jobs:
   deploy_frontend_to_gcp:
     runs-on: ubuntu-latest
-    # Add "id-token" with the intended permissions.
     steps:
       - uses: 'actions/checkout@v3'
       - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
@@ -25,9 +23,10 @@ jobs:
           docker stop frontend && \
           docker rm frontend && \
           docker run -d -p 80:80 -p 443:443 --name ${{ inputs.IMAGE_NAME }} --restart=always \
-          -v /etc/letsencrypt/live/meowalien.com/fullchain.pem:/certs/meowalien.com.crt \
-          -v /etc/letsencrypt/live/meowalien.com/privkey.pem:/certs/meowalien.com.key \
+          -v  ${MEOWALIEN_PUBLIC_KEY_PATH}:/certs/meowalien.com.crt \
+          -v ${MEOWALIEN_PRIVATE_KEY_PATH}:/certs/meowalien.com.key \
           ${{ env.IMAGE_NAME_HASH }}'
+
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v1'
