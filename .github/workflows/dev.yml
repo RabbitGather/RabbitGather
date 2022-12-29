@@ -12,8 +12,8 @@ jobs:
     uses: ./.github/workflows/build.yml
 #    with:
     secrets:
-      docker_password: ${{ secrets.DOCKERHUB_USERNAME }}
-      docker_username: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 #    runs-on: ubuntu-latest
 #    steps:
 #      - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
