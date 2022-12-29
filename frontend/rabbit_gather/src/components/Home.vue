@@ -11,7 +11,7 @@ defineProps<{ msg: string }>()
     <div class="flex flex-col gap-2 max-w-20em">
       <img src="/rabbit.svg" alt="logo" >
       <h1>
-        RABBIT GATHER
+        RABBIT GATHER TEST
       </h1>
     </div>
   </div>
