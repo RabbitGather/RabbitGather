@@ -7,4 +7,5 @@ on:
 
 jobs:
   build_frontend:
-    uses: ./build.yaml@main
+    - uses: actions/checkout@v3
+    - uses: ./.github/workflows/build.yaml@main
