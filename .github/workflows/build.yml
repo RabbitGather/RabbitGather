@@ -1,5 +1,4 @@
 name: build
-#run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
   workflow_call:
     inputs:
