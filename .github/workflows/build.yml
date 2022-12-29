@@ -29,6 +29,7 @@ jobs:
 
       - run: export IMAGE_NAME=${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ inputs.HASH }}
       - run: echo ${{ env.IMAGE_NAME }}
+      - run: echo ${{ IMAGE_NAME }}
       - run: echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ inputs.BRANCH }}
 #      - run: echo "GIT_TAG=`echo ${GITHUB_REF##*/}`" >> $GITHUB_ENV
 #      - run: echo "IMAGE_NAME=`echo meowalien.com:5000/frontend:${{ env.GIT_TAG }}`" >> $GITHUB_ENV
