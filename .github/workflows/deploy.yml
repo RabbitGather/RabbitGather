@@ -1,7 +1,7 @@
 name: deploy
 run-name: deploy by ${{ github.actor }} - ${{ github.sha }}
 on:
-  merge:
+  push:
     branches:
       - 'main'
 
@@ -11,18 +11,17 @@ jobs:
     # Add "id-token" with the intended permissions.
     steps:
       - uses: 'actions/checkout@v3'
-
+      - uses: ./.github/workflows/build
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v1'
         with:
           credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
       - run: "gcloud compute ssh --zone asia-east1-b a_meowalien@instance-1 -- '
-                docker pull meowalien.com:5000/frontend:main
-                docker stop frontend
-                docker rm frontend
+                docker pull meowalien.com:5000/frontend:main && \
+                docker stop frontend && \
+                docker rm frontend && \
                 docker run -d -p 80:80 -p 443:443 --name frontend --restart=always \
                       -v /etc/letsencrypt/live/meowalien.com/fullchain.pem:/certs/meowalien.com.crt \
                       -v /etc/letsencrypt/live/meowalien.com/privkey.pem:/certs/meowalien.com.key \
-                      meowalien.com:5000/frontend:main
-                '"
+                      meowalien.com:5000/frontend:main'"

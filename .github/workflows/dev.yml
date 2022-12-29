@@ -9,4 +9,4 @@ jobs:
   build_frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: .github/workflows/build.yaml
+      - uses: .github/workflows/build.yaml@main
