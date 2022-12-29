@@ -12,4 +12,4 @@ jobs:
 #    - name: Check out repository code
 #      uses: actions/checkout@v3
 #    - run: ls -a
-   uses: ${{ github.workspace }}/.github/workflows/build.yaml@main
+   uses: ./.github/workflows/build.yaml
