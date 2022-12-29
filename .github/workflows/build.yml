@@ -1,5 +1,5 @@
 name: build
-run-name: build by ${{ github.actor }} - ${{ github.sha }}
+#run-name: build by ${{ github.actor }} - ${{ github.sha }}
 on:
   workflow_call:
     inputs:
@@ -15,7 +15,7 @@ on:
         required: true
 
 jobs:
-  build_frontend:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
@@ -26,11 +26,10 @@ jobs:
       - run: echo "GIT_BRANCH=`echo $(git rev-parse --abbrev-ref HEAD)`" >> $GITHUB_ENV
       - run: echo ${{ env.GIT_BRANCH }}
 
-      - run: echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_BRANCH }}
-      - run: echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}
-
       - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}`" >> $GITHUB_ENV
+      - run: echo ${{ env.IMAGE_NAME_HASH }}
       - run: echo "IMAGE_NAME_BRANCH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_BRANCH }}`" >> $GITHUB_ENV
+      - run: echo ${{ env.IMAGE_NAME_BRANCH }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -49,31 +48,3 @@ jobs:
           file: ${{ github.workspace }}/frontend/Dockerfile
           push: true
           tags: ${{ env.IMAGE_NAME_BRANCH }},${{ env.IMAGE_NAME_HASH }}
-
-
-
-#    tags:
-#      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-#      - run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-#      - run: echo ${SHORT_SHA}
-#      - run: echo "TAG_NAME=`echo meowalien.com:5000/frontend:${SHORT_SHA}`" >> $GITHUB_ENV
-#      - run: echo ${{ env.TAG_NAME }}
-#      - run: echo ${GITHUB_REF##*/}
-#run-name: ${{ github.actor }} is building ${{ github.sha }}
-#on: [push]
-#jobs:
-#  build:
-##    https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
-#    runs-on: ubuntu-latest
-#    steps:
-#      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-#      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-#      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-#      - name: Check out repository code
-#        uses: actions/checkout@v3
-#      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-#      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-#      - name: List files in the repository
-#        run: |
-#          ls ${{ github.workspace }}
-#      - run: echo "🍏 This job's status is ${{ job.status }}."
