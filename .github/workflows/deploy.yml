@@ -1,9 +1,11 @@
 name: deploy
 run-name: deploy by ${{ github.actor }} - ${{ github.sha }}
 on:
-  push:
-    branches:
-      - 'main'
+  workflow_call:
+
+#  push:
+#    branches:
+#      - 'main'
 
 jobs:
   deploy_frontend_to_instance-1:

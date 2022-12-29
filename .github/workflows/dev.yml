@@ -7,6 +7,4 @@ on:
 
 jobs:
   build_frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: meowalien/RabbitGather/.github/workflows/build.yaml@main
+    uses: meowalien/RabbitGather/.github/workflows/build.yaml@main
