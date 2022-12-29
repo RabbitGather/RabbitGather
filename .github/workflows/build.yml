@@ -5,7 +5,8 @@ on:
     inputs:
       GIT_TAG:
         required: true
-#      config-path:
+        type: string
+    #      config-path:
 #        required: true
 #        type: string
     secrets:
