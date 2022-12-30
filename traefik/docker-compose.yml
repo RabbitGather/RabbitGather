@@ -1,0 +1,74 @@
+#version: '3'
+#
+#services:
+#  reverse-proxy:
+#    # The official v2 Traefik docker image
+#    image: traefik:v2.9
+#    # Enables the web UI and tells Traefik to listen to docker
+##    command: --api.insecure=true --providers.docker
+#    ports:
+#      # The HTTP port
+#      - "80:80"
+#      # The Web UI (enabled by --api.insecure=true)
+#      - "8080:8080"
+#    volumes:
+#      # So that Traefik can listen to the Docker events
+#      - /var/run/docker.sock:/var/run/docker.sock
+
+version: '3'
+
+services:
+  frontend:
+    image: meowalien.com:5000/frontend:main
+    container_name: ${CONTAINER_NAME}
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ${MEOWALIEN_PRIVATE_KEY_PATH}:/certs/meowalien.com.key
+      - ${MEOWALIEN_PUBLIC_KEY_PATH}:/certs/meowalien.com.crt
+
+#  reverse-proxy:
+#    # The official v2 Traefik docker image
+#    image: traefik:v2.9
+#    # Enables the web UI and tells Traefik to listen to docker
+##    command: --api.insecure=true --providers.docker
+#    restart: always
+#    container_name: traefik-reverse-proxy
+#    networks:
+#      - traefik-net
+#    ports:
+#      # The HTTP port
+#      - "80:80"
+#      - "443:443"
+#      # The Web UI (enabled by --api.insecure=true)
+#      - "8080:8080"
+#    volumes:
+#      # So that Traefik can listen to the Docker events
+#      - /var/run/docker.sock:/var/run/docker.sock
+#      - ./conf/traefik.yml:/etc/traefik/traefik.yml
+#      - ./conf/dynamic_conf.yml:/etc/traefik/dynamic_conf.yml
+#      - ./conf/acme.json:/acme.json
+#      - ./log:/log
+#  example:
+#    image: nginx:latest
+#    networks:
+#      - ReverseProxy
+#    labels:
+#      - traefik.http.middlewares.example-redirect-to-websecure.redirectscheme.scheme=https
+#      - traefik.http.middlewares.example-web-www-https-redirect.redirectregex.regex=^https://(?:www.)?meowalien.com/(.*)
+#      - traefik.http.middlewares.example-web-www-https-redirect.redirectregex.replacement=https://www.meowalien.com/$${1}
+#      - traefik.http.middlewares.example-web-www-https-redirect.redirectregex.permanent=true
+#      - traefik.http.middlewares.example-secured.chain.middlewares=example-redirect-to-websecure,example-web-www-https-redirect
+#      - traefik.http.routers.example.middlewares=example-secured
+#      - traefik.http.routers.example.rule=Host(`www.meowalien.com`) || Host(`meowalien.com`)
+#      - traefik.http.routers.example.tls=true
+#      - traefik.http.routers.example.tls.options=default
+#      - traefik.http.routers.example.entrypoints=web, websecure
+#      - traefik.http.services.example.loadbalancer.server.port=80
+#      - traefik.http.routers.example.tls.certresolver=myresolver
+#
+#networks:
+#  traefik-net:
+#    external: true
