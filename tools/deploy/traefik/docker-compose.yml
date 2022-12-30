@@ -15,7 +15,7 @@ services:
       - ./traefik.yml:/etc/traefik/traefik.yml
       - ./dynamic.yml:/etc/traefik/dynamic.yml
       - ./acme.json:/acme.json
-      - ./log:/log
+      - ~/traefik_log:/log
     labels:
       - "traefik.http.services.dashboard.loadbalancer.server.port=8080"
       - "traefik.http.routers.dashboard.rule=Host(`dashboard.meowalien.com`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"

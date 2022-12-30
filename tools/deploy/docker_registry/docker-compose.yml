@@ -7,7 +7,7 @@ services:
       - traefik-net
     volumes:
       - ./htpasswd:/auth/htpasswd
-      - ./data:/var/lib/registry
+      - ~/docker_registry_data:/var/lib/registry
     environment:
       REGISTRY_AUTH: htpasswd
       REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
@@ -18,9 +18,15 @@ services:
       - traefik.http.routers.docker_registry.tls=true
       - traefik.http.routers.docker_registry.tls.options=default
       - traefik.http.routers.docker_registry.tls.certresolver=myresolver
-
       - traefik.http.routers.docker_registry.entrypoints=websecure
       - traefik.http.services.docker_registry.loadbalancer.server.port=5000
+
+      - traefik.tcp.routers.docker_registry.rule=Host(`registry.meowalien.com`)
+      - traefik.tcp.routers.docker_registry.tls=true
+      - traefik.tcp.routers.docker_registry.tls.options=default
+      - traefik.tcp.routers.docker_registry.tls.certresolver=myresolver
+      - traefik.tcp.routers.docker_registry.entrypoints=websecure
+      - traefik.tcp.services.docker_registry.loadbalancer.server.port=5000
 
 networks:
   #  docker network create traefik-net

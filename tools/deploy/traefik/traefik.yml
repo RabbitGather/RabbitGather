@@ -31,9 +31,6 @@ entryPoints:
         entryPoint:
           to: websecure
           scheme: https
-#  dashboard:
-#    address: ":8080"
-
   websecure:
     address: :443
     http:
@@ -49,7 +46,7 @@ certificatesResolvers:
       email: a.meowalien@gmail.com
       storage: acme.json
       httpChallenge:
-        entryPoint: web
+        entryPoint: websecure
 
 
 ################################################################

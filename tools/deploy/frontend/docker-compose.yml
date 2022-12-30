@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   frontend:
-    image: meowalien.com:5000/frontend:main
+    image: ${IMAGE_NAME}
     container_name: frontend
     restart: always
     networks:
