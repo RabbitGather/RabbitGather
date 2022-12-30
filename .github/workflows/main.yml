@@ -21,4 +21,3 @@ jobs:
     secrets:
       DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
       GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-
