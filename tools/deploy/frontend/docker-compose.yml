@@ -7,9 +7,6 @@ services:
     restart: always
     networks:
       - traefik-net
-    volumes:
-      - ${MEOWALIEN_PRIVATE_KEY_PATH}:/certs/meowalien.com.key
-      - ${MEOWALIEN_PUBLIC_KEY_PATH}:/certs/meowalien.com.crt
     labels:
       - traefik.http.middlewares.www-https-redirect.redirectregex.regex=^https://(?:www.)?meowalien.com/(.*)
       - traefik.http.middlewares.www-https-redirect.redirectregex.replacement=https://www.meowalien.com/$${1}
@@ -21,10 +18,10 @@ services:
 
       - traefik.http.routers.frontend.rule=Host(`www.meowalien.com`) || Host(`meowalien.com`)
       - traefik.http.routers.frontend.tls=true
+      - traefik.http.routers.frontend.tls.certresolver=myresolver
       - traefik.http.routers.frontend.tls.options=default
       - traefik.http.routers.frontend.entrypoints=websecure
       - traefik.http.services.frontend.loadbalancer.server.port=80
-
 networks:
   #  docker network create traefik-net
   traefik-net:
