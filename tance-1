@@ -1,0 +1,214 @@
+[m[1mNAME[m
+    gcloud compute scp - copy files to and from Google Compute Engine virtual
+        machines via scp
+
+[m[1mSYNOPSIS[m
+    [1mgcloud compute scp[m [[[4mUSER[m@][4mINSTANCE[m:][4mSRC[m [[[[4mUSER[m@][4mINSTANCE[m:][4mSRC[m ...]
+        [[[4mUSER[m@][4mINSTANCE[m:][4mDEST[m [[1m--compress[m] [[1m--dry-run[m]
+        [[1m--force-key-file-overwrite[m] [[1m--plain[m] [[1m--port[m=[4mPORT[m] [[1m--recurse[m]
+        [[1m--scp-flag[m=[4mSCP_FLAG[m] [[1m--ssh-key-file[m=[4mSSH_KEY_FILE[m]
+        [[1m--strict-host-key-checking[m=[4mSTRICT_HOST_KEY_CHECKING[m] [[1m--zone[m=[4mZONE[m]
+        [[1m--internal-ip[m | [1m--tunnel-through-iap[m]
+        [[1m--network[m=[4mNETWORK[m [1m--region[m=[4mREGION[m : [1m--dest-group[m=[4mDEST_GROUP[m]
+        [[1m--ssh-key-expiration[m=[4mSSH_KEY_EXPIRATION[m
+          | [1m--ssh-key-expire-after[m=[4mSSH_KEY_EXPIRE_AFTER[m] [[4mGCLOUD_WIDE_FLAG ...[m]
+
+[m[1mDESCRIPTION[m
+    [1mgcloud compute scp[m securely copies files between a virtual machine instance
+    and your local machine using the scp command.
+
+    This command works for Linux VMs and Windows Server 2019 and later VMs that
+    have SSH enabled
+    (https://cloud.google.com/compute/docs/connect/windows-ssh).
+
+    In order to set up a successful transfer, follow these guidelines:
+      ▪ Prefix remote file names with the virtual machine instance name
+        (e.g., [4mexample-instance[m:~/[4mFILE[m).
+      ▪ Local file names can be used as is (e.g., ~/[4mFILE[m).
+      ▪ File names containing a colon (``:'') must be invoked by either their
+        absolute path or a path that begins with ``./''.
+      ▪ When the destination of your transfer is local, all source files must
+        be from the same virtual machine.
+      ▪ When the destination of your transfer is remote instead, all sources
+        must be local.
+
+    Under the covers, [1mscp(1)[m is used to facilitate the transfer.
+
+    If the [1m--region[m and [1m--network[m flags are provided, then [1m--plain[m and
+    [1m--tunnel-through-iap[m are implied and any remote file names must be prefixed
+    with the remote IP address instead of the instance name. This is most
+    useful for connecting to on-prem resources.
+
+[m[1mEXAMPLES[m
+    To copy a remote directory, [1m~/narnia[m, from [1m[1;4mexample-instance[1m[m to the
+    [1m~/wardrobe[m directory of your local host, run:
+
+        $ gcloud compute scp --recurse example-instance:~/narnia ~/wardrobe
+
+    Conversely, files from your local computer can be copied to a virtual
+    machine:
+
+        $ gcloud compute scp ~/localtest.txt ~/localtest2.txt \
+            example-instance:~/narnia
+
+    If the zone cannot be determined, you will be prompted for it. Use the
+    [1m--zone[m flag to avoid being prompted:
+
+        $ gcloud compute scp --recurse example-instance:~/narnia \
+            ~/wardrobe --zone=us-central1-a
+
+    To specify the project, zone, and recurse all together, run:
+
+        $ gcloud compute scp --project="my-gcp-project" \
+            --zone="us-east1-b" --recurse ~/foo-folder/ gcp-instance-name:~/
+
+    You can limit the allowed time to ssh. For example, to allow a key to be
+    used through 2019:
+
+        $ gcloud compute scp --recurse example-instance:~/narnia \
+            ~/wardrobe --ssh-key-expiration="2020-01-01T00:00:00:00Z"
+
+    Or alternatively, allow access for the next two minutes:
+
+        $ gcloud compute scp --recurse example-instance:~/narnia \
+            ~/wardrobe --ssh-key-expire-after=2m
+
+    To use the IP address of your remote VM (eg, for on-prem), you must also
+    specify the [1m--region[m and [1m--network[m flags:
+
+        $ gcloud compute scp 10.1.2.3:~/narnia ~/wardrobe \
+            --region=us-central1 --network=default
+
+[m[1mPOSITIONAL ARGUMENTS[m
+     [[[4mUSER[m@][4mINSTANCE[m:][4mSRC[m [[[[4mUSER[m@][4mINSTANCE[m:][4mSRC[m ...]
+        Specifies the files to copy.
+
+     [[[4mUSER[m@][4mINSTANCE[m:][4mDEST[m
+        Specifies a destination for the source files.
+
+[m[1mFLAGS[m
+     [1m--compress[m
+        Enable compression.
+
+     [1m--dry-run[m
+        Print the equivalent scp/ssh command that would be run to stdout,
+        instead of executing it.
+
+     [1m--force-key-file-overwrite[m
+        If enabled, the gcloud command-line tool will regenerate and overwrite
+        the files associated with a broken SSH key without asking for
+        confirmation in both interactive and non-interactive environments.
+
+        If disabled, the files associated with a broken SSH key will not be
+        regenerated and will fail in both interactive and non-interactive
+        environments.
+
+     [1m--plain[m
+        Suppress the automatic addition of [1mssh(1)[m/[1mscp(1)[m flags. This flag is
+        useful if you want to take care of authentication yourself or use
+        specific ssh/scp features.
+
+     [1m--port[m=[4mPORT[m
+        The port to connect to.
+
+     [1m--recurse[m
+        Upload directories recursively.
+
+     [1m--scp-flag[m=[4mSCP_FLAG[m
+        Extra flag to be sent to scp. This flag may be repeated.
+
+     [1m--ssh-key-file[m=[4mSSH_KEY_FILE[m
+        The path to the SSH key file. By default, this is
+        [1m[1;4m~/.ssh/google_compute_engine[1m[m.
+
+     [1m--strict-host-key-checking[m=[4mSTRICT_HOST_KEY_CHECKING[m
+        Override the default behavior of StrictHostKeyChecking for the
+        connection. By default, StrictHostKeyChecking is set to 'no' the first
+        time you connect to an instance, and will be set to 'yes' for all
+        subsequent connections. [4mSTRICT_HOST_KEY_CHECKING[m must be one of: [1myes[m,
+        [1mno[m, [1mask[m.
+
+     [1m--zone[m=[4mZONE[m
+        The zone of the instance to copy files to/from.
+
+        If not specified and the [1m[1;4mcompute/zone[1m[m property isn't set, you might be
+        prompted to select a zone (interactive mode only).
+
+        To avoid prompting when this flag is omitted, you can set the
+        [1m[1;4mcompute/zone[1m[m property:
+
+            $ gcloud config set compute/zone ZONE
+
+        A list of zones can be fetched by running:
+
+            $ gcloud compute zones list
+
+        To unset the property, run:
+
+            $ gcloud config unset compute/zone
+
+        Alternatively, the zone can be stored in the environment variable
+        [1m[1;4mCLOUDSDK_COMPUTE_ZONE[1m[m.
+
+     At most one of these can be specified:
+
+       [1m--internal-ip[m
+          Connect to instances using their internal IP addresses rather than
+          their external IP addresses. Use this to connect from one instance to
+          another on the same VPC network, over a VPN connection, or between
+          two peered VPC networks.
+
+          For this connection to work, you must configure your networks and
+          firewall to allow SSH connections to the internal IP address of the
+          instance to which you want to connect.
+
+          To learn how to use this flag, see
+          https://cloud.google.com/compute/docs/instances/connecting-advanced#sshbetweeninstances.
+
+       [1m--tunnel-through-iap[m
+          Tunnel the ssh connection through Cloud Identity-Aware Proxy for TCP
+          forwarding.
+
+          To learn more, see the IAP for TCP forwarding documentation
+          (https://cloud.google.com/iap/docs/tcp-forwarding-overview).
+
+     [1m--network[m=[4mNETWORK[m
+        Configures the VPC network to use when connecting via IP address or
+        FQDN.
+
+     [1m--region[m=[4mREGION[m
+        Configures the region to use when connecting via IP address or FQDN.
+
+     [1m--dest-group[m=[4mDEST_GROUP[m
+        Configures the destination group to use when connecting via IP address
+        or FQDN.
+
+     At most one of these can be specified:
+
+       [1m--ssh-key-expiration[m=[4mSSH_KEY_EXPIRATION[m
+          The time when the ssh key will be valid until, such as
+          "2017-08-29T18:52:51.142Z." This is only valid if the instance is not
+          using OS Login. See $ gcloud topic datetimes for information on time
+          formats.
+
+       [1m--ssh-key-expire-after[m=[4mSSH_KEY_EXPIRE_AFTER[m
+          The maximum length of time an SSH key is valid for once created and
+          installed, e.g. 2m for 2 minutes. See $ gcloud topic datetimes for
+          information on duration formats.
+
+[m[1mGCLOUD WIDE FLAGS[m
+    These flags are available to all commands: --access-token-file, --account,
+    --billing-project, --configuration, --flags-file, --flatten, --format,
+    --help, --impersonate-service-account, --log-http, --project, --quiet,
+    --trace-token, --user-output-enabled, --verbosity.
+
+    Run [1m$ gcloud help[m for details.
+
+[m[1mNOTES[m
+    These variants are also available:
+
+        $ gcloud alpha compute scp
+
+        $ gcloud beta compute scp
+
+[m
