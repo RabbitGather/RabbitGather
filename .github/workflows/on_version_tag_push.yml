@@ -6,7 +6,7 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
   build_and_deploy_frontend:
-    uses: ./.github/workflow_part/build_and_deploy.yml
+    uses: ./.github/workflows/build_and_deploy.yml
     with:
       IMAGE_NAME: frontend
     secrets:
@@ -15,7 +15,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 #  build_frontend:
-#    uses: ./.github/workflow_part/build.yml
+#    uses: ./.github/workflows/build.yml
 #    with:
 #      IMAGE_NAME: frontend
 #    secrets:

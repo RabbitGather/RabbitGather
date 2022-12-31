@@ -8,7 +8,7 @@ on:
 
 jobs:
   build_frontend:
-    uses: ./.github/workflow_part/build.yml
+    uses: ./.github/workflows/build.yml
     with:
       IMAGE_NAME: frontend
     secrets:
