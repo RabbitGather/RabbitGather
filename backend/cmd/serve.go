@@ -1,28 +1,21 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
+	"io"
+	"log"
+	"net/http"
 )
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("serve called")
-	},
+	Short: "",
+	Long:  ``,
+	Run:   run,
 }
 
 func init() {
@@ -37,4 +30,30 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// serveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func run(cmd *cobra.Command, args []string) {
+	//	a echo server on port 8080
+	mx := http.NewServeMux()
+	mx.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// response everything received
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		b = append(b, []byte("AAAAAAAAAAAAA")...)
+		_, err = w.Write(b)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	})
+	err := http.ListenAndServe(":3001", mx)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }
