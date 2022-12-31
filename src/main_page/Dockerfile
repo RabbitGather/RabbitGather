@@ -4,7 +4,7 @@ WORKDIR "/build"
 
 ARG VERSION
 
-COPY . .
+COPY ./src .
 #-ldflags "-X main.version=${VERSION}"
 RUN go build -o ./app ./main.go
 

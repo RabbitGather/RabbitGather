@@ -12,7 +12,8 @@ import router from '@/router'
 
 <style scoped>
   .main{
-    background: bisque;
+    //color: black;
+    //background: bisque;
     width: 100%;
     height: 100%;
   }
