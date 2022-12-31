@@ -14,19 +14,12 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-#  build_frontend:
-#    uses: ./.github/workflows/build.yml
+#  build_and_deploy_app:
+#    uses: ./.github/workflows/build_and_deploy.yml
 #    with:
-#      IMAGE_NAME: frontend
+#      IMAGE_NAME: app
 #    secrets:
 #      DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
 #      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 #      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-#  deploy_frontend:
-#    needs: build_frontend
-#    uses: ./.github/workflows/deploy_to_gcp.yml
-#    with:
-#      IMAGE_NAME: frontend
-#    secrets:
-#      DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
 #      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
