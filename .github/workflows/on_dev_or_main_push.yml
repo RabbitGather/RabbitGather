@@ -1,4 +1,4 @@
-name: dev
+name: on_dev_or_main_push
 run-name: push by ${{ github.actor }} - ${{ github.sha }}
 on:
   push:

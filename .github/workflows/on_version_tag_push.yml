@@ -1,4 +1,4 @@
-name: main
+name: on_version_tag_push
 run-name: push by ${{ github.actor }} - ${{ github.sha }}
 on:
   push:
