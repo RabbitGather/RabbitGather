@@ -1,5 +1,5 @@
-name: on_version_tag_push
-run-name: push by ${{ github.actor }} - ${{ github.sha }}
+name: build_and_deploy
+#run-name: push by ${{ github.actor }} - ${{ github.sha }}
 on:
   workflow_call:
     inputs:
