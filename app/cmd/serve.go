@@ -44,7 +44,7 @@ func run(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		b = append(b, []byte("AAAAAAAAAAAAA")...)
+		b = append(b, []byte("BBBBBBBBBBB")...)
 		_, err = w.Write(b)
 		if err != nil {
 			log.Println(err)

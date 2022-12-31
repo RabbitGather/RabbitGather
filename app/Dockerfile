@@ -12,4 +12,5 @@ FROM alpine:3.17
 RUN apk update && apk add tzdata
 WORKDIR "/app"
 COPY --from=base /build/app ./app
+EXPOSE 3001
 ENTRYPOINT chmod +x ./app && ./app serve
