@@ -38,7 +38,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: ${{ github.workspace }}/frontend/
-          file: ${{ github.workspace }}/frontend/Dockerfile
+          context: ${{ github.workspace }}/${{ inputs.IMAGE_NAME }}/
+          file: ${{ github.workspace }}/${{ inputs.IMAGE_NAME }}/Dockerfile
           push: true
           tags: ${{ env.IMAGE_NAME_BRANCH }},${{ env.IMAGE_NAME_HASH }}

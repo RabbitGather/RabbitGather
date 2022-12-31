@@ -1,0 +1,32 @@
+name: on_version_tag_push
+run-name: push by ${{ github.actor }} - ${{ github.sha }}
+on:
+  workflow_call:
+    inputs:
+      IMAGE_NAME:
+        required: true
+        type: string
+    secrets:
+      DOCKER_REGISTRY_HOST:
+        required: true
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+jobs:
+  build:
+    uses: ./.github/workflow_part/build.yml
+    with:
+      IMAGE_NAME: ${{ inputs.IMAGE_NAME }}
+    secrets:
+      DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  deploy:
+    needs: build
+    uses: ./.github/workflows/deploy_to_gcp.yml
+    with:
+      IMAGE_NAME: ${{ inputs.IMAGE_NAME }}
+    secrets:
+      DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}

@@ -11,19 +11,19 @@ on:
       GOOGLE_CREDENTIALS:
         required: true
 jobs:
-  deploy_frontend_to_gcp:
-    concurrency: main
+  deploy_to_gcp:
+    concurrency: deploy_to_gcp
     runs-on: ubuntu-latest
     steps:
       - uses: 'actions/checkout@v3'
       - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
       - run: echo "FULL_IMAGE_NAME=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH }}`" >> $GITHUB_ENV
-      - run: echo "REMOTE_TEMP_DIR_NAME=`echo /tmp/deploy_frontend_${{ env.GIT_SHORT_HASH }}`" >> $GITHUB_ENV
+      - run: echo "REMOTE_TEMP_DIR_NAME=`echo /tmp/deploy_${{ inputs.IMAGE_NAME }}_${{ env.GIT_SHORT_HASH }}`" >> $GITHUB_ENV
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v1'
         with:
           credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
-      - run: "gcloud compute scp --recurse ./deploy/frontend/ a_meowalien@instance-1:${{ env.REMOTE_TEMP_DIR_NAME }} --zone asia-east1-b"
+      - run: "gcloud compute scp --recurse ./deploy/${{ inputs.IMAGE_NAME }}/ a_meowalien@instance-1:${{ env.REMOTE_TEMP_DIR_NAME }} --zone asia-east1-b"
       - run: "gcloud compute ssh --zone asia-east1-b a_meowalien@instance-1 -- 'cd ${{ env.REMOTE_TEMP_DIR_NAME }} && IMAGE_NAME=${{ env.FULL_IMAGE_NAME }} CONTAINER_NAME=${{ inputs.IMAGE_NAME }} source ./deploy.sh'"
 
