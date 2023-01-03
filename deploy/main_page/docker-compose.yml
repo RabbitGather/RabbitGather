@@ -8,7 +8,7 @@ services:
     networks:
       - traefik-net
     labels:
-      - traefik.http.routers.${CONTAINER_NAME}.rule=Host(`api.meowalien.com`)
+      - traefik.http.routers.${CONTAINER_NAME}.rule=Host(`${CONTAINER_NAME}.meowalien.com`)
       - traefik.http.routers.${CONTAINER_NAME}.tls=true
       - traefik.http.routers.${CONTAINER_NAME}.tls.certresolver=myresolver
       - traefik.http.routers.${CONTAINER_NAME}.tls.options=default

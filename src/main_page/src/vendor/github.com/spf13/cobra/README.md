@@ -4,7 +4,7 @@ Cobra is a library for creating powerful modern CLI applications.
 
 Cobra is used in many Go projects such as [Kubernetes](https://kubernetes.io/),
 [Hugo](https://gohugo.io), and [GitHub CLI](https://github.com/cli/cli) to
-name a few. [This list](projects_using_cobra.md) contains a more extensive list of projects using Cobra.
+name a few. [This list](./projects_using_cobra.md) contains a more extensive list of projects using Cobra.
 
 [![](https://img.shields.io/github/workflow/status/spf13/cobra/Test?longCache=tru&label=Test&logo=github%20actions&logoColor=fff)](https://github.com/spf13/cobra/actions?query=workflow%3ATest)
 [![Go Reference](https://pkg.go.dev/badge/github.com/spf13/cobra.svg)](https://pkg.go.dev/github.com/spf13/cobra)

@@ -4,8 +4,11 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+      -
 jobs:
   build_and_deploy_frontend:
+    paths:
+      - 'src/frontend/**'
     uses: ./.github/workflows/build_and_deploy.yml
     with:
       IMAGE_NAME: frontend

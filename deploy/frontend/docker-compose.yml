@@ -12,8 +12,6 @@ services:
       - traefik.http.middlewares.www-https-redirect.redirectregex.replacement=https://www.meowalien.com/$${1}
       - traefik.http.middlewares.www-https-redirect.redirectregex.permanent=true
 
-#      - traefik.http.middlewares.secured.chain.middlewares=www-https-redirect
-
       - traefik.http.routers.${CONTAINER_NAME}.middlewares=www-https-redirect
 
       - traefik.http.routers.${CONTAINER_NAME}.rule=Host(`www.meowalien.com`) || Host(`meowalien.com`)
