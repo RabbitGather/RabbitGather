@@ -1,10 +1,9 @@
-name: on_dev_or_main_push
+name: on_dev_push
 run-name: push by ${{ github.actor }} - ${{ github.sha }}
 on:
   push:
     branches:
       - 'dev'
-#      - 'main'
 
 jobs:
   build_frontend:

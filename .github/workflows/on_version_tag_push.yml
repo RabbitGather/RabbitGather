@@ -1,29 +1,37 @@
 name: on_version_tag_push
 run-name: push by ${{ github.actor }} - ${{ github.sha }}
 on:
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
-      -
+  workflow_dispatch:
+    inputs:
+      image_name:
+        description: 'image name'
+        required: true
+        type: choice
+        options:
+          - frontend
+          - main_page
+#  push:
+#    tags:
+#      - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
-  build_and_deploy_frontend:
+  build_and_deploy:
     paths:
       - 'src/frontend/**'
     uses: ./.github/workflows/build_and_deploy.yml
     with:
-      IMAGE_NAME: frontend
+      IMAGE_NAME: ${{ inputs.logLevel }}
     secrets:
       DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-  build_and_deploy_main_page_api:
-    uses: ./.github/workflows/build_and_deploy.yml
-    with:
-      IMAGE_NAME: main_page
-    secrets:
-      DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+#  build_and_deploy_main_page_api:
+#    uses: ./.github/workflows/build_and_deploy.yml
+#    with:
+#      IMAGE_NAME: main_page
+#    secrets:
+#      DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
+#      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+#      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+#      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
