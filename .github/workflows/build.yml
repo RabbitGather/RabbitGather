@@ -44,6 +44,4 @@ jobs:
           file: ${{ env.PROJECT_DIR }}/Dockerfile
           push: true
           tags: ${{ env.IMAGE_NAME_BRANCH }},${{ env.IMAGE_NAME_HASH }},${{ env.IMAGE_NAME_LATEST }}
-#          platforms:
-#            - linux/amd64
-#            - linux/arm/v8
+          platforms: linux/amd64,linux/arm/v8
