@@ -14,7 +14,7 @@ tls:
   stores:
     default:
       defaultCertificate:
-        certFile: /certs/cert.pem
+        certFile: /certs/cert.crt
         keyFile: /certs/key.key
 #  certificates:
 #    - certFile: /path/to/domain.cert

@@ -27,10 +27,10 @@ services:
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./certs/local.key:/certs/key.key"
-      - "./certs/local_fullchain.pem:/certs/cert.pem"
+      - "./certs/meowalien.local.key:/certs/key.key"
+      - "./certs/meowalien.local_fullchain.crt:/certs/cert.crt"
     labels:
-      - "traefik.http.routers.dashboard.rule=Host(`dashboard.local`)"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.meowalien.local`)"
       - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
       - "traefik.http.routers.dashboard.service=api@internal"
