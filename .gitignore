@@ -3,3 +3,8 @@ experiment/
 log/
 old/
 .idea/
+**/try.*
+
+try
+
+certs/
