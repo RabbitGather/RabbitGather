@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="SshConfigs">
-    <configs>
-      <sshConfig host="meowalien.com" id="215774d6-858c-411e-963e-045f57a78701" keyPath="\\wsl$\Ubuntu-20.04\home\sayken\.ssh\google_compute_engine" port="22" nameFormat="DESCRIPTIVE" username="a_meowalien" useOpenSSHConfig="true" />
-    </configs>
-  </component>
-</project>
