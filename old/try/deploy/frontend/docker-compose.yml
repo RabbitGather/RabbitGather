@@ -1,0 +1,27 @@
+version: "3.7"
+
+services:
+  deploy:
+    image: ${IMAGE_NAME}
+    container_name: ${CONTAINER_NAME}
+    restart: always
+    
+    labels:
+      - traefik.http.middlewares.www-https-redirect.redirectregex.regex=^https://(?:www.)?meowalien.com/(.*)
+      - traefik.http.middlewares.www-https-redirect.redirectregex.replacement=https://www.meowalien.com/$${1}
+      - traefik.http.middlewares.www-https-redirect.redirectregex.permanent=true
+
+#      - traefik.http.middlewares.secured.chain.middlewares=www-https-redirect
+
+      - traefik.http.routers.${CONTAINER_NAME}.middlewares=www-https-redirect
+
+      - traefik.http.routers.${CONTAINER_NAME}.rule=Host(`www.meowalien.com`) || Host(`meowalien.com`)
+      - traefik.http.routers.${CONTAINER_NAME}.tls=true
+      - traefik.http.routers.${CONTAINER_NAME}.tls.certresolver=myresolver
+      - traefik.http.routers.${CONTAINER_NAME}.tls.options=default
+      - traefik.http.routers.${CONTAINER_NAME}.entrypoints=websecure
+      - traefik.http.services.${CONTAINER_NAME}.loadbalancer.server.port=80
+networks:
+  #  docker network create traefik-net
+  traefik-net:
+    external: true

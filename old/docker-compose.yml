@@ -1,0 +1,82 @@
+version: "3"
+services:
+  traefik:
+    image: traefik:v2.9
+    restart: always
+    container_name: traefik
+    networks:
+      - traefik-net
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml
+      - ./traefik/acme.json:/acme.json
+      - ~/traefik_log:/log
+    labels:
+      - "traefik.http.services.dashboard.loadbalancer.server.port=8080"
+
+      - traefik.http.middlewares.traefik-redirect.redirectregex.regex=^https://dashboard.${HOST}/
+      - traefik.http.middlewares.traefik-redirect.redirectregex.replacement=https://dashboard.${HOST}/dashboard/
+      - traefik.http.middlewares.traefik-redirect.redirectregex.permanent=true
+
+      - traefik.http.routers.dashboard.middlewares=traefik-redirect
+
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.${HOST}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure,web"
+#      - "traefik.http.routers.dashboard.tls=true"
+#      - "traefik.http.routers.dashboard.tls.options=default"
+#      - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=sayken:$$2y$$05$$iTKM6Fff8ndgV0/OnDmZ9ufk1qljgBkL6KULBd8qX5pQkjT0i8SGG"
+
+  web:
+    image: registry.meowalien.com/frontend:${WEB_TAG:-latest}
+    container_name: web
+    restart: always
+    networks:
+      - traefik-net
+    labels:
+      - traefik.http.middlewares.www-redirect.redirectregex.regex=^https://${HOST}/(.*)
+      - traefik.http.middlewares.www-redirect.redirectregex.replacement=https://www.${HOST}/$${1}
+      - traefik.http.middlewares.www-redirect.redirectregex.permanent=true
+
+      - traefik.http.routers.web.middlewares=www-redirect
+
+      - traefik.http.routers.web.rule=Host(`www.${HOST}`) || Host(`${HOST}`)
+#      - traefik.http.routers.web.tls=true
+#      - traefik.http.routers.web.tls.certresolver=myresolver
+#      - traefik.http.routers.web.tls.options=default
+      - traefik.http.routers.web.entrypoints=websecure,web
+      - traefik.http.services.web.loadbalancer.server.port=80
+
+  centrifugo:
+    container_name: centrifugo
+    image: centrifugo/centrifugo:v4.1
+    volumes:
+      - ./centrifugo/config.json:/centrifugo/config.json
+    command: centrifugo -c config.json
+    networks:
+      - traefik-net
+    ports:
+      - 10000:10000
+#      - 80:8000
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    labels:
+      - traefik.http.routers.centrifugo.rule=Host(`ws.${HOST}`)
+#      - traefik.http.routers.centrifugo.tls=true
+#      - traefik.http.routers.centrifugo.tls.certresolver=myresolver
+#      - traefik.http.routers.centrifugo.tls.options=default
+      - traefik.http.routers.centrifugo.entrypoints=websecure,web
+      - traefik.http.services.centrifugo.loadbalancer.server.port=8000
+networks:
+  #  docker network create traefik-net
+  traefik-net:
+    external: true
+

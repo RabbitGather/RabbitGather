@@ -1,0 +1,51 @@
+version: "3"
+
+services:
+  traefik:
+    image: traefik:v2.5
+    container_name: traefik
+#    command:
+#      - "--api.insecure=true"
+#      - "--providers.docker=true"
+#      - "--providers.docker.exposedbydefault=false"
+#      - "--entrypoints.websecure.address=:443"
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml
+      - ./dynamic.yml:/etc/traefik/dynamic.yml
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./certs/meowalien.local.key:/certs/key.key"
+      - "./certs/meowalien.local_fullchain.crt:/certs/cert.crt"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`dashboard.meowalien.local`)"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+    network_mode: host
+
+
+#version: '3'
+#
+#services:
+#  traefik:
+#    image: traefik:v2.9
+#    container_name: traefik
+##    ports:
+##      - "80:80"
+##      - "443:443"
+##      - "8080:8080"
+#    volumes:
+#      - ./traefik.yml:/etc/traefik/traefik.yml
+#      - ./dynamic.yml:/etc/traefik/dynamic.yml
+#      - "/var/run/docker.sock:/var/run/docker.sock"
+#      - "./certs/meowalien.local.key:/certs/key.key"
+#      - "./certs/meowalien.local_fullchain.crt:/certs/cert.crt"
+#    labels:
+#      - "traefik.http.routers.dashboard.rule=Host(`dashboard.meowalien.local`)"
+#      - "traefik.http.routers.dashboard.tls=true"
+#      - "traefik.http.routers.dashboard.service=api@internal"
+#      - "traefik.http.routers.dashboard.entrypoints=websecure"
+#      - "traefik.http.services.dashboard.loadbalancer.server.port=8080"
+#    network_mode: host
+##networks:
+##    traefik:
+##        external: true

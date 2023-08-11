@@ -1,0 +1,46 @@
+name: build
+on:
+  workflow_call:
+    inputs:
+      IMAGE_NAME:
+        required: true
+        type: string
+    secrets:
+      DOCKER_REGISTRY_HOST:
+        required: true
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - run: echo "GIT_SHORT_HASH=`echo $(git rev-parse --short HEAD)`" >> $GITHUB_ENV
+      - run: echo "GIT_BRANCH=`echo $(echo ${GITHUB_REF_NAME})`" >> $GITHUB_ENV
+      - run: echo "IMAGE_NAME_HASH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ env.GIT_SHORT_HASH  }}`" >> $GITHUB_ENV
+      - run: echo "IMAGE_NAME_BRANCH=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:${{ github.ref_name }}`" >> $GITHUB_ENV
+      - run: echo "IMAGE_NAME_LATEST=`echo ${{ secrets.DOCKER_REGISTRY_HOST }}/${{ inputs.IMAGE_NAME }}:latest`" >> $GITHUB_ENV
+      - run: echo "PROJECT_DIR=`echo ${{ github.workspace }}/src/${{ inputs.IMAGE_NAME }}`" >> $GITHUB_ENV
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.DOCKER_REGISTRY_HOST }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: ${{ env.PROJECT_DIR }}/
+          file: ${{ env.PROJECT_DIR }}/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_NAME_BRANCH }},${{ env.IMAGE_NAME_HASH }},${{ env.IMAGE_NAME_LATEST }}
