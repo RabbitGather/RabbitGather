@@ -1,23 +1,31 @@
 # RabbitGather Project Index
 
 - RabbitGather-homepage
-  - Host on CloudStorage
+  - Host on `CloudStorage`
+  - Write in `Vue.js`
 
 ## Interest News
 
 - RabbitGather-interest-reader
-  - Provide API for getting news
-  - Read needed news from Database
+  - Provide API for getting data from `Firestore`
 
 - RabbitGather-interest-manager
-  - Provide API to control everything about interest news
+  - Provide GRPC API for update, delete, create news or tasks
+  - Create a task in `Firestore` and write down what to crawl
+  - Push taskID(crawl) to `Pub/Sub`
 
 - RabbitGather-interest-crawler
-    - Crawl news from web
-    - Save news html to CloudStorage
+  - Consume task from `Pub/Sub`
+  - Read task from `Firestore`
+  - Execute task
+  - Save the result to `CloudStorage`
+  - Set result url to `Firestore` 
+  - Push taskID(parse) to `Pub/Sub`
 
 - RabbitGather-interest-parser
-  - Parse news html from CloudStorage to structured data and save to CloudSQL
+  - Consume task from `Pub/Sub`
+  - Read task from `Firestore`
+  - Parse news html from `CloudStorage` to structured data and save to `Firestore`
 
 
 ## Library
@@ -33,10 +41,10 @@
 - ArtifactRegistry
 - CloudStorage
 - CloudSQL
+- Firestore
+- Pub/Sub
 
-- GCP Pub/Sub
-  - for microservice communication
 - Kafka
-  - for data streaming
+- RabbitMQ
 
 - RabbitMQ
