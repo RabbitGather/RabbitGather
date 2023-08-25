@@ -1,50 +1,83 @@
 # RabbitGather Project Index
 
+## Service
+
+### Frontend
 - RabbitGather-homepage
   - Host on `CloudStorage`
   - Write in `Vue.js`
 
-## Interest News
 
-- RabbitGather-interest-reader
-  - Provide API for getting data from `Firestore`
+### Backend
+- Provide API through gRPC
+- Microservice architecture
 
-- RabbitGather-interest-manager
-  - Provide GRPC API for update, delete, create news or tasks
-  - Create a task in `Firestore` and write down what to crawl
-  - Push taskID(crawl) to `Pub/Sub`
+#### Interest Service
+Offers gRPC API.
 
-- RabbitGather-interest-crawler
-  - Consume task from `Pub/Sub`
-  - Read task from `Firestore`
-  - Execute task
-  - Save the result to `CloudStorage`
-  - Set result url to `Firestore` 
-  - Push taskID(parse) to `Pub/Sub`
-
-- RabbitGather-interest-parser
-  - Consume task from `Pub/Sub`
-  - Read task from `Firestore`
-  - Parse news html from `CloudStorage` to structured data and save to `Firestore`
+Handles web crawling, monitoring, and scheduled tasks, maintaining tasks specified by users.
+- Dependency
+  - MongoDB
 
 
 ## Library
+  - RabbitGather-proto
+    - Define proto file for all services
 
-- RabbitGather-proto
-  - Define proto file for all services
+  - go-meowalien-lib
+    - golang tools 
 
-- go-meowalien-lib
-  - golang tools 
+
+## CI/CD
+  - RabbitGather-cicd
+    - Manage all CI/CD workflow
+
 
 ## Infrastructure
+- Envoy Proxy ( GRPC-web proxy )
+  - https://github.com/envoyproxy/envoy
+
+- Centrifugo ( Websocket-grpc proxy )
+  - https://centrifugal.dev
+
+- RabbitMQ-Cluster on GCP
+  - For decouple services
+  - For task queue
+  - For message broadcast
 
 - ArtifactRegistry
+  - Use for store docker images
+
+- GitHubAction
+  - Build and push docker image to `ArtifactRegistry`
+
 - CloudStorage
-- CloudSQL
-- Firestore
-- Pub/Sub
+  - Use for store and host web page and static files
+  - Use for store user uploaded files
 
-- Kafka
-- RabbitMQ
 
-- RabbitMQ
+
+
+
+
+[//]: # ()
+[//]: # (- MySQL&#40;CloudSQL&#41;)
+
+[//]: # (  - Use for store transactional data)
+
+[//]: # (  - Use to store key data that need to be consistent, reliable, and ACID)
+
+[//]: # ()
+[//]: # (- Firestore)
+
+[//]: # (  - Use for store semi-structured data for fast query and search)
+
+[//]: # (  - Use for store user generated data)
+
+[//]: # ()
+[//]: # (- Kafka/CloudPubSub/CloudDataFlow)
+
+[//]: # (    - Use for analyzing big data)
+
+
+
