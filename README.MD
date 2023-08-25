@@ -9,6 +9,7 @@
 
 
 ### Backend
+- Monorepo architecture
 - Provide API through gRPC
 - Microservice architecture
 
